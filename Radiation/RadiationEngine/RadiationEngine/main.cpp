@@ -1,9 +1,16 @@
+//RADIATION ENGINE v1.0.0
 #include <stdio.h>
 #include <string>
+#include <vector>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
+
+using namespace std;
+
+const int tile_w = 22;
+const int tile_h = 15;
 
 float FPS = 60;
 int BOUNCER_SIZE = 32;
@@ -17,24 +24,134 @@ ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
 ALLEGRO_BITMAP *bouncer = NULL; //Testing out bitmaps and shite here
 ALLEGRO_BITMAP *image_tst = NULL; //Testing out images here
 ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
+ALLEGRO_CONFIG *level_cfg = al_load_config_file("level1.lvl"); //Loads first level config file
+ALLEGRO_CONFIG *map_cfg = al_load_config_file("map1.mp"); //Loads first map file
+ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl");
 ALLEGRO_MIXER *main_mix; //Main mixer for audio system
 ALLEGRO_VOICE *audio_hw; //= al_create_voice(440, ALLEGRO_AUDIO_DEPTH_FLOAT32, ALLEGRO_CHANNEL_CONF_2); //Main voice for audio hardware
 ALLEGRO_AUDIO_STREAM *a_stream; //Main audio stream
+ALLEGRO_FILE *file_handler; //Main file pointer
+
+bool audio_active = false;
 
 struct tile{ //Basic tile declaration
 	ALLEGRO_BITMAP* image; //The image referenced for each tile
 	int id; //Image ref-id. Used for determing whether or not there are tile effects applied
 };
 
-tile map[10][10]; //Basic map setup, provides for tiles at specified locations. Similar to MoveGuy, but with sprites
+struct tile_map{ //Basic map declaration
+	int tilemp[22][15]; //Roughly a portion of the screen covered by the tiles
+	vector<int> data_test; //Attempting to use a vector to allow for dynamic map loading (variable size)
+	int id; //Map ref-id. Used to determine which floor is being displayed
+	string title; //Title of the map being displayed
+};
+
+struct level{ //Basic level declaration
+	tile_map lvl[10][10]; //10x10 grid of maps which make up the entire level 
+	int id; //Level ref-id. Used to determine which level is being displayed
+	string title; //Title of level being used
+};
+
+tile_map curmap; //Memory-loaded map and level variables, something static (roughly) so as to decrease lag and shit
+level curlvl;
+
+tile tile_reg[100]; //There is space for 100 unique tile entities with this
+
+//TEMPORARY CODE TO TEST OUT LEVEL/MAP/TILE SYSTEM!
+tile_map map1;
+level level1;
+//END TEMPORARY CODE!
+
+void loadmap(){
+	string map_data = al_get_config_value(map_cfg, "map_data", "m");
+	int w = atoi(al_get_config_value(map_cfg, "map_data", "w"));
+	int h = atoi(al_get_config_value(map_cfg, "map_data", "h"));
+
+	fprintf(stdout, "\n");
+
+	fprintf(stdout, map_data.c_str());
+
+	fprintf(stdout, "\n");
+
+	al_rest(2);
+	string ohfuck;
+	for(int x = 0; x < w; x++){
+		for(int y = 0; y < h; y++){
+			curmap.tilemp[x][y] = map_data.at(x+y); //Take the aggregate of x and y, and find that point in the string
+			ohfuck = curmap.tilemp[x][y];
+			fprintf(stdout, ohfuck.c_str());
+		}
+	}
+
+	fprintf(stdout, "\n");
+	string fuckinghell;
+	for(int x = 0; x < w; x++){
+		for(int y = 0; y < h; y++){
+			curmap.data_test.push_back(map_data.at(x+y));
+			fuckinghell = curmap.data_test.at(x+y);
+			fprintf(stdout, fuckinghell.c_str());
+		}
+	}
+
+	fprintf(stdout, "n");
+}
+
+void loadtiles(){
+	string filename = al_get_config_value(tile_cfg, "0", "file");
+	int id = atoi(al_get_config_value(tile_cfg, "0", "id"));
+
+	fprintf(stdout, filename.c_str());
+
+	tile_reg[id].image = al_load_bitmap(filename.c_str());
+	tile_reg[id].id = id;
+
+	filename = "";
+	id = NULL;
+
+	//This will be replaced with an automated system that cycles through all entries.
+	//This is just for testing purposes
+	filename = al_get_config_value(tile_cfg, "1", "file");
+	id = atoi(al_get_config_value(tile_cfg, "1", "id"));
+
+	fprintf(stdout, filename.c_str());
+
+	tile_reg[id].image = al_load_bitmap(filename.c_str());
+	tile_reg[id].id = id;
+}
+
+void loadlvl(level lvl){
+
+}
+
+void set_lvl(level lvl){
+	curlvl = lvl; //Just something simple to clear some clutter
+}
+
+void get_map_to_mem(int x, int y){
+	curmap = curlvl.lvl[x][y];
+}
+
+int get_tile(int x, int y){
+	return curmap.tilemp[x][y]; //Get tile ref-id from the current map, loaded previously
+}
+
+ALLEGRO_BITMAP* get_image(int id){
+	tile tl;
+
+	tl = tile_reg[id];
+
+	return tl.image;
+}
+
 
 void draw_map(){
-	for(int x=0; x < 10; x++){
-		for(int y=0; y < 10; y++){
-			al_draw_bitmap(map[x][y].image, x*32, y*32, 0);
+	for(int x=0; x < tile_w; x++){
+		for(int y=0; y < tile_h; y++){
+			al_draw_bitmap(get_image(get_tile(x, y)), x*32, y*32, 0);
 		}
 	}
 }
+
 
 void apply_main_config(){
 	//Setting the screen resolution as per the configuration file
@@ -44,39 +161,43 @@ void apply_main_config(){
 	BOUNCER_SIZE = atoi(al_get_config_value(config_ld, "TESTING", "bouncer_s"));
 
 	fprintf(stdout, al_get_config_value(config_ld, "SCREENRES", "w"));
+	fprintf(stdout, "\n");
 	fprintf(stdout, al_get_config_value(config_ld, "SCREENRES", "h"));
+	fprintf(stdout, "\n");
 	fprintf(stdout, al_get_config_value(config_ld, "FPS", "f"));
+	fprintf(stdout, "\n");
+	fprintf(stdout, al_get_config_value(config_ld, "TESTING", "bouncer_s"));
+	fprintf(stdout, al_get_config_value(tile_cfg, "0", "id"));
 }
 
-int main(int argc, char **argv)
-{
-	bool redraw = true;
-	bool doexit = false;
-	bool key[4] = {false, false, false, false};
- 
-   if(!al_init()) {
+int init_engine(){
+	if(!al_init()) {
       fprintf(stderr, "failed to initialize allegro!\n");
       return -1;
    }
+   else{ fprintf(stdout, "Allegro initialized!\n"); }
 
    if(!al_init_image_addon()){
 	   fprintf(stderr, "failed to initialize image addon!\n");
-	   return -1;
+	   return -2;
    }
+   else{ fprintf(stdout, "Allegro Image addon initialized!\n"); }
 
    if(!al_install_keyboard()){
 	   fprintf(stderr, "failed to install keyboard!\n");
-	   return -1;
+	   return -3;
    }
+   else{ fprintf(stdout, "Keyboard initialized!\n"); }
 
    if(!al_install_audio()){
-	   fprintf(stderr, "failed to install audio subsystem!\n");
-	   return -1;
+	   fprintf(stderr, "failed to install audio subsystem!\ncontinuing with standard load\n");
    }
+   else{ audio_active = true; }
 
    if(!al_init_acodec_addon()){
-	   fprintf(stderr, "failed to install audio subsystem!\n");
+	   fprintf(stderr, "failed to install audio subsystem!\ncontinuing with standard load\n");
    }
+   else{ audio_active = true; }
 
    if(!config_ld){
 	   fprintf(stderr, "failed to load config file! setting to defaults...\n");
@@ -84,27 +205,41 @@ int main(int argc, char **argv)
    else{
 	   apply_main_config();
    }
+
+   if(!tile_cfg){
+	   fprintf(stderr, "Failed to load tile config file!\n");
+	   al_rest(5);
+	   return -4;
+   }
+
+   if(!map_cfg){
+	   fprintf(stderr, "Failed to load map!\n");
+	   return -5;
+   }
  
    display = al_create_display(SCREEN_W, SCREEN_H);
    if(!display) {
       fprintf(stderr, "failed to create display!\n");
-      return -1;
+      return -6;
    }
+   else{ fprintf(stdout, "Display initialized!\n"); }
 
    evt_q = al_create_event_queue();
    if(!evt_q){
 	   al_destroy_display(display);
 	   fprintf(stderr, "failed to initialize event queue!\n");
-	   return -1;
+	   return -7;
    }
+   else{ fprintf(stdout, "Event queue initialized!\n"); }
 
    timer = al_create_timer(1.0 / FPS);
    if(!timer){
 	   al_destroy_display(display);
 	   al_destroy_event_queue(evt_q);
 	   fprintf(stderr, "failed to initialize timer!\n");
-	   return -1;
+	   return -8;
    }
+   else{ fprintf(stdout, "Timer initialized!\n"); }
 
    bouncer = al_create_bitmap(BOUNCER_SIZE, BOUNCER_SIZE);
    if(!bouncer){
@@ -112,23 +247,32 @@ int main(int argc, char **argv)
 	   al_destroy_event_queue(evt_q);
 	   al_destroy_timer(timer);
 	   fprintf(stderr, "failed to initialize basic bitmap!\n");
-	   return -1;
+	   return -9;
    }
+}
 
-   image_tst = al_load_bitmap("check.png");
-   if(!image_tst){
-	   al_destroy_display(display);
-	   al_destroy_event_queue(evt_q);
-	   al_destroy_timer(timer);
-	   al_destroy_bitmap(bouncer);
-	   fprintf(stderr, "failed to initialize image load!\n");
-	   return -1;
-   }
+int main(int argc, char **argv)
+{
+	bool redraw = true;
+	bool doexit = false;
+	bool key[4] = {false, false, false, false};
+   
+	char error_status = init_engine();
+	
+   //TEMPORARY CODE TO POPULATE TEMP MAP!
+   map1.id = 0;
+   map1.title = "Test Map 1";
 
-   //al_attach_mixer_to_voice(main_mix, audio_hw); //Set our mixer to the given hardware configuration
+   level1.lvl[0][0] = map1;
+   level1.id = 0;
+   level1.title = "Test Level 1";
+   //END TEMPORARY CODE!
+
+   set_lvl(level1);
+   loadtiles(); //We need to call this first, to make sure that the tiles are loaded into memory
+   loadmap();
 
    al_reserve_samples(1); //Reserve the sample amounts for the main mixer
-
 
    //TEMPORARY CODE TO TEST MOVING SPRITE REDRAW AND IMAGE BITMAPPING!
    float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0;
@@ -137,20 +281,6 @@ int main(int argc, char **argv)
 
    float image_x = SCREEN_W / 2.0;
    float image_y = SCREEN_H / 2.0;
-   //END TEMPORARY CODE!
-
-   //TEMPORARY CODE TO TEST OUT THE TILE STRUCTURE!
-   tile tst_tile;
-   tst_tile.image = image_tst;
-   tst_tile.id = 0;
-   //END TEMPORARY CODE!
-
-   //TEMPORARY CODE TO POPULATE TEMP MAP!
-   for(int x=0; x < 10; x++){
-	   for(int y=0; y < 10; y++){
-		   map[x][y] = tst_tile;
-	   }
-   }
    //END TEMPORARY CODE!
 
    //TEMPORARY CODE TO MAKE THE PRETTY PURPLE BLOCK!
@@ -169,6 +299,9 @@ int main(int argc, char **argv)
    al_flip_display();
 
    al_start_timer(timer);
+
+   set_lvl(level1);
+   get_map_to_mem(0, 0);
 
    while(!doexit){
 
@@ -226,16 +359,12 @@ int main(int argc, char **argv)
 		   break;
 	   }
 
-	   /*if(get_event && ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE){ //Check if any events have occurred in the past 60 milliseconds. If no, return false. If yes, check input.
-		   break; //If it is closed, exit the game loop. No crashing this time.
-	   }*///Older code, not really needed but left in just in case shit hits a fan somewhere
-
 	   if(redraw && al_is_event_queue_empty(evt_q)){
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
 		draw_map(); //Call the custom map printing function
 		al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0); //Actually draw out bitmap to the buffer
-		al_draw_bitmap(tst_tile.image, image_x, image_y, 0); //Draw out the image as well
+		al_draw_bitmap(tile_reg[1].image, 100, 200, 0); //Does this fucking tile even exist?
 		al_flip_display(); //Bring buffer up
 	   }
 
