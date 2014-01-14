@@ -1,6 +1,7 @@
 //RADIATION ENGINE v1.0.0
 #include <stdio.h>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
@@ -61,36 +62,47 @@ level level1;
 
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
-	//int w = atoi(al_get_config_value(map_cfg, "map_data", "w"));
-	//int h = atoi(al_get_config_value(map_cfg, "map_data", "h"));
-
-	//tile_w = w;
-	//tile_h = h;
 
 	for(int i = 0; i < (tile_w*tile_h); i++){
 		curmap.raw_data.push_back(map_data.at(i));
 	}
 
-	fprintf(stdout, curmap.raw_data.c_str());
+	//fprintf(stdout, curmap.raw_data.c_str());
 }
 
 void loadtiles(){
-	string filename = al_get_config_value(tile_cfg, "0", "file");
-	int id = atoi(al_get_config_value(tile_cfg, "0", "id"));
+	//Starting the automated file shit here
+	int start, end;
+	string data;
+	
+	data = al_get_config_value(tile_cfg, "data", "start");
+	start = atoi(data.c_str());
 
-	tile_reg[id].image = al_load_bitmap(filename.c_str());
-	tile_reg[id].id = id;
+	data = al_get_config_value(tile_cfg, "data", "end");
+	end = atoi(data.c_str());
+	fprintf(stdout, "\n\nTotal textures: %i\n", (end+1));
 
-	filename = "";
-	id = NULL;
+	string curpos;
+	string filename;
+	int id;
+	stringstream convert;
+	for(int i = start; i < (end+1); i++){
+		convert.clear();
+		convert.str("");
+		convert << i;
+		curpos = convert.str();
 
-	//This will be replaced with an automated system that cycles through all entries.
-	//This is just for testing purposes
-	filename = al_get_config_value(tile_cfg, "1", "file");
-	id = atoi(al_get_config_value(tile_cfg, "1", "id"));
+		filename = al_get_config_value(tile_cfg, curpos.c_str(), "file");
+		id = atoi(al_get_config_value(tile_cfg, curpos.c_str(), "id"));
 
-	tile_reg[id].image = al_load_bitmap(filename.c_str());
-	tile_reg[id].id = id;
+		tile_reg[id].image = al_load_bitmap(filename.c_str());
+		tile_reg[id].id = id;
+		fprintf(stdout, "\n");
+		fprintf(stdout, al_get_config_value(tile_cfg, curpos.c_str(), "id"));
+		fprintf(stdout, "\n");
+		fprintf(stdout, filename.c_str());
+	}
+	fprintf(stdout, "\n\n\n");
 }
 
 void set_lvl(level lvl){
@@ -107,13 +119,10 @@ void loadlvl(){ //Wierd bug has been fixed within loadlvl(). It was a simple mis
 
 	tile_w = atoi(al_get_config_value(level_cfg, "global", "w"));
 	display_t = tile_w;
-	fprintf(stdout, display_t.c_str());
 	tile_h = atoi(al_get_config_value(level_cfg, "global", "h"));
 	display_t = tile_h;
-	fprintf(stdout, display_t.c_str());
 	int id = atoi(al_get_config_value(level_cfg, "levelone", "start"));
 	display_t = id;
-	fprintf(stdout, display_t.c_str());
 
 	switch(id){
 	case 0 : set_lvl(level1); break;
@@ -138,8 +147,6 @@ ALLEGRO_BITMAP* get_image(int id){
 
 	tl = tile_reg[id];
 
-	//fprintf(stdout, "%i", id);
-
 	return tl.image;
 }
 
@@ -160,16 +167,17 @@ void apply_main_config(){
 	FPS = atoi(al_get_config_value(config_ld, "FPS", "f"));
 	BOUNCER_SIZE = atoi(al_get_config_value(config_ld, "TESTING", "bouncer_s"));
 
-	
+	fprintf(stdout, "Screen width: ");
 	fprintf(stdout, al_get_config_value(config_ld, "SCREENRES", "w"));
 	fprintf(stdout, "\n");
+	fprintf(stdout, "Screen height: ");
 	fprintf(stdout, al_get_config_value(config_ld, "SCREENRES", "h"));
 	fprintf(stdout, "\n");
+	fprintf(stdout, "FPS: ");
 	fprintf(stdout, al_get_config_value(config_ld, "FPS", "f"));
 	fprintf(stdout, "\n");
+	fprintf(stdout, "Bouncer size: ");
 	fprintf(stdout, al_get_config_value(config_ld, "TESTING", "bouncer_s"));
-	fprintf(stdout, "\n");
-	fprintf(stdout, al_get_config_value(tile_cfg, "0", "id"));
 	fprintf(stdout, "\n");
 }
 
@@ -280,7 +288,7 @@ int main(int argc, char **argv)
 
    //TEMPORARY CODE TO MAKE THE PRETTY PURPLE BLOCK!
    al_set_target_bitmap(bouncer);
-   al_clear_to_color(al_map_rgb(125,65,215));
+   al_clear_to_color(al_map_rgb(125,125,125));
    //END TEMPORARY CODE!
 
    al_set_target_bitmap(al_get_backbuffer(display));
