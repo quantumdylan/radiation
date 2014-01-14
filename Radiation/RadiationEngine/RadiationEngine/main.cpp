@@ -24,8 +24,8 @@ ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
 ALLEGRO_BITMAP *bouncer = NULL; //Testing out bitmaps and shite here
 ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
 ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first level config file
-ALLEGRO_CONFIG *map_cfg = al_load_config_file("map1.mp"); //Loads first map file
-ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl");
+ALLEGRO_CONFIG *map_cfg = al_load_config_file("maps.mp"); //Loads first map file
+ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
 ALLEGRO_MIXER *main_mix; //Main mixer for audio system
 ALLEGRO_VOICE *audio_hw; //= al_create_voice(440, ALLEGRO_AUDIO_DEPTH_FLOAT32, ALLEGRO_CHANNEL_CONF_2); //Main voice for audio hardware
 ALLEGRO_AUDIO_STREAM *a_stream; //Main audio stream
@@ -54,11 +54,6 @@ tile_map curmap; //Memory-loaded map and level variables, something static (roug
 level curlvl;
 
 tile tile_reg[100]; //There is space for 100 unique tile entities with this
-
-//TEMPORARY CODE TO TEST OUT LEVEL/MAP/TILE SYSTEM!
-tile_map map1;
-level level1;
-//END TEMPORARY CODE!
 
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
@@ -123,10 +118,6 @@ void loadlvl(){ //Wierd bug has been fixed within loadlvl(). It was a simple mis
 	display_t = tile_h;
 	int id = atoi(al_get_config_value(level_cfg, "levelone", "start"));
 	display_t = id;
-
-	switch(id){
-	case 0 : set_lvl(level1); break;
-	}
 }
 
 int get_tile(int pos){
@@ -136,6 +127,9 @@ int get_tile(int pos){
 	switch(temp_s){
 	case '0' : temp = 0; break;
 	case '1' : temp = 1; break;
+	case '2' : temp = 2; break;
+	case '3' : temp = 3; break;
+	case '4' : temp = 4; break;
 	default : temp = 0;
 	}
 
@@ -276,7 +270,6 @@ int main(int argc, char **argv)
    loadlvl();
    loadtiles(); //We need to call this first, to make sure that the tiles are loaded into memory
    loadmap();
-   //set_lvl(level1);
 
    al_reserve_samples(1); //Reserve the sample amounts for the main mixer
 
