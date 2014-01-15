@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <math.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_audio.h>
@@ -24,14 +25,24 @@ ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
 ALLEGRO_BITMAP *bouncer = NULL; //Testing out bitmaps and shite here
 ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
 ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first level config file
-ALLEGRO_CONFIG *map_cfg = al_load_config_file("maps.mp"); //Loads first map file
+ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
 ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
 ALLEGRO_MIXER *main_mix; //Main mixer for audio system
 ALLEGRO_VOICE *audio_hw; //= al_create_voice(440, ALLEGRO_AUDIO_DEPTH_FLOAT32, ALLEGRO_CHANNEL_CONF_2); //Main voice for audio hardware
 ALLEGRO_AUDIO_STREAM *a_stream; //Main audio stream
 ALLEGRO_FILE *file_handler; //Main file pointer
 
+//TEMPORARY CODE TO TEST MOVING SPRITE REDRAW AND IMAGE BITMAPPING!
+float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0;
+float bouncer_y = SCREEN_H/2.0 - BOUNCER_SIZE/2.0;
+float bouncer_dx = 4.0; float bouncer_dy = -4.0;
+//END TEMPORARY CODE!
+
 bool audio_active = false;
+
+double round(double d){
+	return floor(d + 0.5);
+}
 
 struct tile{ //Basic tile declaration
 	ALLEGRO_BITMAP* image; //The image referenced for each tile
@@ -61,8 +72,6 @@ void loadmap(){
 	for(int i = 0; i < (tile_w*tile_h); i++){
 		curmap.raw_data.push_back(map_data.at(i));
 	}
-
-	//fprintf(stdout, curmap.raw_data.c_str());
 }
 
 void loadtiles(){
@@ -122,16 +131,16 @@ void loadlvl(){ //Wierd bug has been fixed within loadlvl(). It was a simple mis
 
 int get_tile(int pos){
 	int temp;
+
+	stringstream converter;
 	
-	char temp_s = (int)curmap.raw_data.at(pos);
-	switch(temp_s){
-	case '0' : temp = 0; break;
-	case '1' : temp = 1; break;
-	case '2' : temp = 2; break;
-	case '3' : temp = 3; break;
-	case '4' : temp = 4; break;
-	default : temp = 0;
-	}
+	converter << curmap.raw_data.at(pos);
+
+	string temp_s;
+
+	temp_s = converter.str();
+	
+	temp = atoi(temp_s.c_str());
 
 	return temp;
 }
@@ -151,6 +160,7 @@ void draw_map(){
 			al_draw_bitmap(get_image(get_tile((tile_w*y)+x)), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
+	al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0);
 }
 
 
@@ -259,6 +269,31 @@ int init_engine(){
    }
 }
 
+int col_def(float x, float y, float dx, float dy){
+	int tile_y = round((y+dy)/32);
+	int tile_x = round((x+dx)/32);
+	char temp = curmap.raw_data.at(tile_y*tile_w + tile_x);
+
+	switch(temp){
+	case '1' : return 1; break;
+	case '2' : return 2; break;
+	case '3' : return 3; break;
+	case '4' : return 4; break;
+	default : return 0;
+	}
+}
+
+bool col_det(float x, float y, float dx, float dy){
+	int tile_y = round((y+dy)/32);
+	int tile_x = round((x+dx)/32);
+	char temp = curmap.raw_data.at(tile_y*tile_w + tile_x);
+
+	switch(temp){
+	case '0' : return false;
+	default : return true;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	bool redraw = true;
@@ -267,17 +302,11 @@ int main(int argc, char **argv)
    
 	char error_status = init_engine();
 
-   loadlvl();
-   loadtiles(); //We need to call this first, to make sure that the tiles are loaded into memory
+   loadlvl(); //We need to call this first
+   loadtiles(); 
    loadmap();
 
    al_reserve_samples(1); //Reserve the sample amounts for the main mixer
-
-   //TEMPORARY CODE TO TEST MOVING SPRITE REDRAW AND IMAGE BITMAPPING!
-   float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0;
-   float bouncer_y = SCREEN_H/2.0 - BOUNCER_SIZE/2.0;
-   float bouncer_dx = 4.0; float bouncer_dy = -4.0;
-   //END TEMPORARY CODE!
 
    //TEMPORARY CODE TO MAKE THE PRETTY PURPLE BLOCK!
    al_set_target_bitmap(bouncer);
@@ -305,23 +334,28 @@ int main(int argc, char **argv)
 	   bool get_event = al_wait_for_event_until(evt_q, &ev, &timeout); //Shorten the al_wait_for_event_until(...) to something a bit more manageable
 
 	   if(ev.type == ALLEGRO_EVENT_TIMER){ //Basic ping from timer
-		   if(bouncer_x < 0 || bouncer_x > SCREEN_W - BOUNCER_SIZE){
+		   if(bouncer_x < 0 || bouncer_x > tile_w*32 - BOUNCER_SIZE){
 			   bouncer_dx *= -1;
 		   }
-		   if(bouncer_y < 0 || bouncer_y > SCREEN_H - BOUNCER_SIZE){
+		   if(bouncer_y < 0 || bouncer_y > tile_h*32 - BOUNCER_SIZE){
 			   bouncer_dy *= -1;
 		   }
+		   if(col_det(bouncer_x, bouncer_y, bouncer_dx, bouncer_dy)){
+			   //DO SOMETHING EVENTUALLY
+			   //I GIVE UP FOR TONIGHT
+			   //FUCK THIS.
+		   }
 
-		   if(key[KEY_UP] && bouncer_dy > -6){
+		   if(key[KEY_UP] && bouncer_dy > -3){
 			   bouncer_dy -= 1;
 		   }
-		   if(key[KEY_DOWN] && bouncer_dy < 6){
+		   if(key[KEY_DOWN] && bouncer_dy < 3){
 			   bouncer_dy += 1;
 		   }
-		   if(key[KEY_RIGHT] && bouncer_dx < 6){
+		   if(key[KEY_RIGHT] && bouncer_dx < 3){
 			   bouncer_dx += 1;
 		   }
-		   if(key[KEY_LEFT] && bouncer_dx > -6){
+		   if(key[KEY_LEFT] && bouncer_dx > -3){
 			   bouncer_dx -= 1;
 		   }
 
@@ -356,8 +390,6 @@ int main(int argc, char **argv)
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
 		draw_map(); //Call the custom map printing function
-		al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0); //Actually draw out bitmap to the buffer
-		//al_draw_bitmap(tile_reg[1].image, 100, 200, 0); //Does this fucking tile even exist?
 		al_flip_display(); //Bring buffer up
 	   }
 
