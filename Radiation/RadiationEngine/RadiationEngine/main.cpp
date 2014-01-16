@@ -15,7 +15,6 @@ using namespace std;
 int tile_w, tile_h;
 
 float FPS = 60;
-int BOUNCER_SIZE = 32;
 int SCREEN_W = 640;
 int SCREEN_H = 480;
 enum MYKEYS {KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT};
@@ -74,32 +73,55 @@ bool col_det(float x, float y, float dx, float dy);
 //You've done this, you bastard. I hope you're happy.
 class player{
 public:
-	player(int inx, int iny, tile player_tl);
+	player(int inx, int iny, tile player_tl, int dxc, int dyc);
 	//~player();
 	cartes get_pos();
 	int getx();
 	int gety();
-	void move(int dir);
+	void move(int dir); //
 	tile get_player_tile();
 	ALLEGRO_BITMAP* get_player_image();
 	void change_vel(int mag, int id);
-	void think(); //These two functions will be used for autonomous systems later on. Think npcs.
-	void act();
+	void think(player* play); //These two functions will be used for autonomous systems later on. Think npcs.
 	void decay();
 private:
 	tile player_tile;
 	float x, y, dx, dy;
+	int dxcap, dycap;
 
 	void cap_vel();
+	void act();
 };
 
-player::player(int inx, int iny, tile player_tl){
+player::player(int inx, int iny, tile player_tl, int dxc, int dyc){
 	//Initialize the values either to null or the given values
 	x = inx;
 	y = iny;
 	player_tile = player_tl;
 	dx = 0;
 	dy = 0;
+	dxcap = dxc;
+	dycap = dyc;
+}
+
+void player::think(player* play){
+	//This is where we can put code to automate the npc movement
+	//For now, I'm just going to have them do simple pathing
+	//Eventually, I hope to integrate the A* pathing algortihm
+	//to this. But that will take quite some time.
+
+	if(x < play->getx())
+		move(2);
+	if(x > play->getx())
+		move(0);
+	if(y < play->gety())
+		move(3);
+	if(y > play->gety())
+		move(1);
+}
+
+void player::act(){
+
 }
 
 ALLEGRO_BITMAP* player::get_player_image(){
@@ -124,14 +146,14 @@ cartes player::get_pos(){
 }
 
 void player::cap_vel(){
-	if(dx >= 3)
-		dx = 3;
-	if(dx <= -3)
-		dx = -3;
-	if(dy >= 3)
-		dy = 3;
-	if(dy <= -3)
-		dy = -3;
+	if(dx >= dxcap)
+		dx = dxcap;
+	if(dx <= -dxcap)
+		dx = -dxcap;
+	if(dy >= dycap)
+		dy = dycap;
+	if(dy <= -dycap)
+		dy = -dycap;
 
 	if(abs(dx) <= 0.3)
 		dx = 0;
@@ -178,6 +200,7 @@ level curlvl;
 tile tile_reg[100]; //There is space for 100 unique tile entities with this
 
 player* character; //Just creating this as a temporary
+player* tempnpc; //Also a temporary npc entity
 
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
@@ -273,6 +296,7 @@ void draw_map(){
 		}
 	}
 	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0);
+	al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
 }
 
 void apply_main_config(){
@@ -402,7 +426,8 @@ int main(int argc, char **argv)
    loadtiles(); 
    loadmap();
 
-   character = new player(550, 100, tile_reg[5]);
+   character = new player(550, 100, tile_reg[5], 5, 5);
+   tempnpc = new player(440, 300, tile_reg[6], 2, 2);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -436,6 +461,7 @@ int main(int argc, char **argv)
 
 		   //Attempting to have the motion decay quickly, looks more natural or whatever
 		   character->decay();
+		   tempnpc->think(character);
 
 		   redraw = true;
 	   }

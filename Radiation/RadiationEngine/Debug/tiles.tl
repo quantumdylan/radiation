@@ -2,7 +2,7 @@
 #DO NOT REMOVE THE DATA SECTION!!!
 [data]
 start = 0
-end = 5
+end = 6
 
 #0 tiles are stone
 [0]
@@ -28,3 +28,7 @@ file= tiles/tile-wall-bottom-0.png
 [5]
 id = 5
 file = tiles/check.png
+
+[6]
+id = 6
+file = tiles/check2.png

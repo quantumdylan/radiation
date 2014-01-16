@@ -1,8 +1,8 @@
 #Main level declaration
 
 [global]
-w = 22
-h = 15
+w = 40
+h = 22
 
 [levelone]
 start = 0
