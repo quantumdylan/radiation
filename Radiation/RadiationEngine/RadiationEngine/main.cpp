@@ -23,7 +23,6 @@ enum MYKEYS {KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT};
 ALLEGRO_DISPLAY *display = NULL; //Basic display pointer
 ALLEGRO_EVENT_QUEUE *evt_q = NULL; //Basic event queue
 ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
-ALLEGRO_BITMAP *bouncer = NULL; //Testing out bitmaps and shite here
 ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
 ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first level config file
 ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
@@ -31,12 +30,6 @@ ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile load
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
 ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
 ALLEGRO_FILE *file_handler; //Main file pointer
-
-//TEMPORARY CODE TO TEST MOVING SPRITE REDRAW AND IMAGE BITMAPPING!
-float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0 + 70;
-float bouncer_y = SCREEN_H/2.0 - BOUNCER_SIZE/2.0;
-float bouncer_dx = 0.0; float bouncer_dy = 0.0;
-//END TEMPORARY CODE!
 
 double round(double d){
 	return floor(d + 0.5);
@@ -81,19 +74,45 @@ bool col_det(float x, float y, float dx, float dy);
 //You've done this, you bastard. I hope you're happy.
 class player{
 public:
-	player();
-	~player();
+	player(int inx, int iny, tile player_tl);
+	//~player();
 	cartes get_pos();
+	int getx();
+	int gety();
 	void move(int dir);
 	tile get_player_tile();
+	ALLEGRO_BITMAP* get_player_image();
 	void change_vel(int mag, int id);
+	void think(); //These two functions will be used for autonomous systems later on. Think npcs.
+	void act();
+	void decay();
 private:
 	tile player_tile;
 	float x, y, dx, dy;
 
-	void decay();
 	void cap_vel();
 };
+
+player::player(int inx, int iny, tile player_tl){
+	//Initialize the values either to null or the given values
+	x = inx;
+	y = iny;
+	player_tile = player_tl;
+	dx = 0;
+	dy = 0;
+}
+
+ALLEGRO_BITMAP* player::get_player_image(){
+	return player_tile.image;
+}
+
+int player::getx(){
+	return x;
+}
+
+int player::gety(){
+	return y;
+}
 
 cartes player::get_pos(){
 	cartes position;
@@ -122,15 +141,16 @@ void player::cap_vel(){
 
 void player::change_vel(int mag, int id){
 	switch(id){
-	case 0 : dx -= 1;
-	case 1 : dy -= 1;
-	case 2 : dx += 1;
-	case 3 : dy += 1;
+	case 0 : dx -= mag; break;
+	case 1 : dy -= mag; break;
+	case 2 : dx += mag; break;
+	case 3 : dy += mag; break;
 	default : ;
 	}
 }
 
 void player::move(int dir){
+	change_vel(2, dir);
 	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
 
 	switch(dir){
@@ -138,8 +158,9 @@ void player::move(int dir){
 	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; break;
 	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; break;
 	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; break;
-	default : ;
+	default : decay();
 	}
+	decay();
 }
 
 tile player::get_player_tile(){
@@ -155,6 +176,8 @@ tile_map curmap; //Memory-loaded map and level variables, something static (roug
 level curlvl;
 
 tile tile_reg[100]; //There is space for 100 unique tile entities with this
+
+player* character; //Just creating this as a temporary
 
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
@@ -249,7 +272,7 @@ void draw_map(){
 			al_draw_bitmap(get_image(get_tile((tile_w*y)+x)), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
-	al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0);
+	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0);
 }
 
 void apply_main_config(){
@@ -257,7 +280,6 @@ void apply_main_config(){
 	SCREEN_W = atoi(al_get_config_value(config_ld, "SCREENRES", "w"));
 	SCREEN_H = atoi(al_get_config_value(config_ld, "SCREENRES", "h"));
 	FPS = atoi(al_get_config_value(config_ld, "FPS", "f"));
-	BOUNCER_SIZE = atoi(al_get_config_value(config_ld, "TESTING", "bouncer_s"));
 
 	fprintf(stdout, "Screen width: ");
 	fprintf(stdout, al_get_config_value(config_ld, "SCREENRES", "w"));
@@ -267,9 +289,6 @@ void apply_main_config(){
 	fprintf(stdout, "\n");
 	fprintf(stdout, "FPS: ");
 	fprintf(stdout, al_get_config_value(config_ld, "FPS", "f"));
-	fprintf(stdout, "\n");
-	fprintf(stdout, "Bouncer size: ");
-	fprintf(stdout, al_get_config_value(config_ld, "TESTING", "bouncer_s"));
 	fprintf(stdout, "\n");
 }
 
@@ -354,15 +373,6 @@ int init_engine(){
    }
    else{ fprintf(stdout, "Timer initialized!\n"); }
 
-   //This is still just for testing purposes. Potential for a top down bullet-hell?
-   bouncer = al_create_bitmap(BOUNCER_SIZE, BOUNCER_SIZE);
-   if(!bouncer){
-	   al_destroy_display(display);
-	   al_destroy_event_queue(evt_q);
-	   al_destroy_timer(timer);
-	   fprintf(stderr, "failed to initialize basic bitmap!\n");
-	   return -9;
-   }
   if(!sound_cfg){
 	  cout << "Fuck, the sound config isn't loading. FUCK.\n";
 	  return -10;
@@ -392,10 +402,7 @@ int main(int argc, char **argv)
    loadtiles(); 
    loadmap();
 
-   //TEMPORARY CODE TO MAKE THE PRETTY PURPLE BLOCK!
-   al_set_target_bitmap(bouncer);
-   al_clear_to_color(al_map_rgb(125,125,125));
-   //END TEMPORARY CODE!
+   character = new player(550, 100, tile_reg[5]);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -418,51 +425,18 @@ int main(int argc, char **argv)
 	   bool get_event = al_wait_for_event_until(evt_q, &ev, &timeout); //Shorten the al_wait_for_event_until(...) to something a bit more manageable
 
 	   if(ev.type == ALLEGRO_EVENT_TIMER){ //Basic ping from timer
-		   if(bouncer_x < 0 || bouncer_x > tile_w*32 - BOUNCER_SIZE){
-			   bouncer_dx *= -1;
-			   al_play_sample(sample_test, 1.0, ALLEGRO_AUDIO_PAN_NONE, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-		   }
-		   if(bouncer_y < 0 || bouncer_y > tile_h*32 - BOUNCER_SIZE){
-			   bouncer_dy *= -1;
-			   al_play_sample(sample_test, 1.0, ALLEGRO_AUDIO_PAN_NONE, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
-		   }
-
 		   if(key[KEY_LEFT])
-			   bouncer_dx -= 1;
+			   character->move(0);
 		   if(key[KEY_RIGHT])
-			   bouncer_dx += 1;
+			   character->move(2);
 		   if(key[KEY_UP])
-			   bouncer_dy -= 1;
+			   character->move(1);
 		   if(key[KEY_DOWN])
-			   bouncer_dy += 1;
-
-		   if(bouncer_dx >= 3)
-			   bouncer_dx = 3;
-		   if(bouncer_dx <= -3)
-			   bouncer_dx = -3;
-		   if(bouncer_dy >= 3)
-			   bouncer_dy = 3;
-		   if(bouncer_dy <= -3)
-			   bouncer_dy = -3;
-
-		   
-		   if(col_det(bouncer_x, bouncer_y, bouncer_dx, bouncer_dy)){
-			   bouncer_dx = 0;
-			   bouncer_dy = 0;
-		   }
+			   character->move(3);
 
 		   //Attempting to have the motion decay quickly, looks more natural or whatever
-		   bouncer_dx *= 0.7;
-		   bouncer_dy *= 0.7;
+		   character->decay();
 
-		   //If the velocity is less than half, then set it to NULL
-		   if(abs(bouncer_dx) < 0.2)
-			   bouncer_dx = 0;
-		   if(abs(bouncer_dy) < 0.2)
-			   bouncer_dy = 0;
-
-		   bouncer_x += bouncer_dx;
-		   bouncer_y += bouncer_dy;
 		   redraw = true;
 	   }
 	   else if(ev.type == ALLEGRO_EVENT_KEY_DOWN){
@@ -501,7 +475,6 @@ int main(int argc, char **argv)
    al_destroy_timer(timer);
    al_destroy_event_queue(evt_q);
    al_destroy_display(display);
-   al_destroy_bitmap(bouncer);
    al_destroy_config(config_ld);
 
    al_uninstall_audio();
