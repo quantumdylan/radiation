@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <math.h>
+#include <iostream>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_audio.h>
@@ -27,18 +28,15 @@ ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for
 ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first level config file
 ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
 ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
-ALLEGRO_MIXER *main_mix; //Main mixer for audio system
-ALLEGRO_VOICE *audio_hw; //= al_create_voice(440, ALLEGRO_AUDIO_DEPTH_FLOAT32, ALLEGRO_CHANNEL_CONF_2); //Main voice for audio hardware
-ALLEGRO_AUDIO_STREAM *a_stream; //Main audio stream
+ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
+ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
 ALLEGRO_FILE *file_handler; //Main file pointer
 
 //TEMPORARY CODE TO TEST MOVING SPRITE REDRAW AND IMAGE BITMAPPING!
-float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0;
+float bouncer_x = SCREEN_W/2.0 - BOUNCER_SIZE/2.0 + 70;
 float bouncer_y = SCREEN_H/2.0 - BOUNCER_SIZE/2.0;
-float bouncer_dx = 4.0; float bouncer_dy = -4.0;
+float bouncer_dx = 0.0; float bouncer_dy = 0.0;
 //END TEMPORARY CODE!
-
-bool audio_active = false;
 
 double round(double d){
 	return floor(d + 0.5);
@@ -60,6 +58,98 @@ struct level{ //Basic level declaration
 	int id; //Level ref-id. Used to determine which level is being displayed
 	string title; //Title of level being used
 };
+
+struct cartes{ 
+	float x; //X-pos variable
+	float y; //Y-pos variable
+};
+
+bool audio_active = false;
+
+bool col_det(float x, float y, float dx, float dy);
+
+//MAIN PLAYER CLASS DEFINITION!
+//Basically, I wan't to be able to create player characters
+//from nothing. In this case, it will be able to move (in conjuction
+//with the col_det() function) and return its position and its
+//assigned tile texture.
+//TODO:
+//Actually write the functions and test if we get more of those damned memory
+//access errors again. I swear if I get another damned "assertion failed" or
+//out_of_memory I am gonna kill someone. But not really, because I am a
+//pacifist. But I may break my alcoholic abstinence and start drinking heavily.
+//You've done this, you bastard. I hope you're happy.
+class player{
+public:
+	player();
+	~player();
+	cartes get_pos();
+	void move(int dir);
+	tile get_player_tile();
+	void change_vel(int mag, int id);
+private:
+	tile player_tile;
+	float x, y, dx, dy;
+
+	void decay();
+	void cap_vel();
+};
+
+cartes player::get_pos(){
+	cartes position;
+
+	position.x = x;
+	position.y = y;
+
+	return position;
+}
+
+void player::cap_vel(){
+	if(dx >= 3)
+		dx = 3;
+	if(dx <= -3)
+		dx = -3;
+	if(dy >= 3)
+		dy = 3;
+	if(dy <= -3)
+		dy = -3;
+
+	if(abs(dx) <= 0.3)
+		dx = 0;
+	if(abs(dy) <= 0.3)
+		dy = 0;
+}
+
+void player::change_vel(int mag, int id){
+	switch(id){
+	case 0 : dx -= 1;
+	case 1 : dy -= 1;
+	case 2 : dx += 1;
+	case 3 : dy += 1;
+	default : ;
+	}
+}
+
+void player::move(int dir){
+	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
+
+	switch(dir){
+	case 0 : if(!col_det(x, y, dx, dy)) x+=dx; break; //Just doing basic movement functions here. Make sure that the collisions are accounted for
+	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; break;
+	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; break;
+	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; break;
+	default : ;
+	}
+}
+
+tile player::get_player_tile(){
+	return player_tile;
+}
+
+void player::decay(){
+	dx *= 0.8;
+	dy *= 0.8;
+}
 
 tile_map curmap; //Memory-loaded map and level variables, something static (roughly) so as to decrease lag and shit
 level curlvl;
@@ -153,7 +243,6 @@ ALLEGRO_BITMAP* get_image(int id){
 	return tl.image;
 }
 
-
 void draw_map(){
 	for(int x=0; x < tile_w; x++){
 		for(int y=0; y < tile_h; y++){
@@ -162,7 +251,6 @@ void draw_map(){
 	}
 	al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0);
 }
-
 
 void apply_main_config(){
 	//Setting the screen resolution as per the configuration file
@@ -183,6 +271,14 @@ void apply_main_config(){
 	fprintf(stdout, "Bouncer size: ");
 	fprintf(stdout, al_get_config_value(config_ld, "TESTING", "bouncer_s"));
 	fprintf(stdout, "\n");
+}
+
+void load_samples(){
+	al_reserve_samples(1);
+	sample_test = al_load_sample("walk01.wav");
+	if(!sample_test){
+		cout << "Fucking fuck, this shit didn't load. Check the load_samples() function. Stupid fucking program...\n";
+	}
 }
 
 int init_engine(){
@@ -267,20 +363,10 @@ int init_engine(){
 	   fprintf(stderr, "failed to initialize basic bitmap!\n");
 	   return -9;
    }
-}
-
-int col_def(float x, float y, float dx, float dy){
-	int tile_y = round((y+dy)/32);
-	int tile_x = round((x+dx)/32);
-	char temp = curmap.raw_data.at(tile_y*tile_w + tile_x);
-
-	switch(temp){
-	case '1' : return 1; break;
-	case '2' : return 2; break;
-	case '3' : return 3; break;
-	case '4' : return 4; break;
-	default : return 0;
-	}
+  if(!sound_cfg){
+	  cout << "Fuck, the sound config isn't loading. FUCK.\n";
+	  return -10;
+  } else { cout << "Sound config file loaded!\n"; load_samples(); }
 }
 
 bool col_det(float x, float y, float dx, float dy){
@@ -305,8 +391,6 @@ int main(int argc, char **argv)
    loadlvl(); //We need to call this first
    loadtiles(); 
    loadmap();
-
-   al_reserve_samples(1); //Reserve the sample amounts for the main mixer
 
    //TEMPORARY CODE TO MAKE THE PRETTY PURPLE BLOCK!
    al_set_target_bitmap(bouncer);
@@ -336,28 +420,46 @@ int main(int argc, char **argv)
 	   if(ev.type == ALLEGRO_EVENT_TIMER){ //Basic ping from timer
 		   if(bouncer_x < 0 || bouncer_x > tile_w*32 - BOUNCER_SIZE){
 			   bouncer_dx *= -1;
+			   al_play_sample(sample_test, 1.0, ALLEGRO_AUDIO_PAN_NONE, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
 		   }
 		   if(bouncer_y < 0 || bouncer_y > tile_h*32 - BOUNCER_SIZE){
 			   bouncer_dy *= -1;
-		   }
-		   if(col_det(bouncer_x, bouncer_y, bouncer_dx, bouncer_dy)){
-			   //DO SOMETHING EVENTUALLY
-			   //I GIVE UP FOR TONIGHT
-			   //FUCK THIS.
+			   al_play_sample(sample_test, 1.0, ALLEGRO_AUDIO_PAN_NONE, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
 		   }
 
-		   if(key[KEY_UP] && bouncer_dy > -3){
-			   bouncer_dy -= 1;
-		   }
-		   if(key[KEY_DOWN] && bouncer_dy < 3){
-			   bouncer_dy += 1;
-		   }
-		   if(key[KEY_RIGHT] && bouncer_dx < 3){
-			   bouncer_dx += 1;
-		   }
-		   if(key[KEY_LEFT] && bouncer_dx > -3){
+		   if(key[KEY_LEFT])
 			   bouncer_dx -= 1;
+		   if(key[KEY_RIGHT])
+			   bouncer_dx += 1;
+		   if(key[KEY_UP])
+			   bouncer_dy -= 1;
+		   if(key[KEY_DOWN])
+			   bouncer_dy += 1;
+
+		   if(bouncer_dx >= 3)
+			   bouncer_dx = 3;
+		   if(bouncer_dx <= -3)
+			   bouncer_dx = -3;
+		   if(bouncer_dy >= 3)
+			   bouncer_dy = 3;
+		   if(bouncer_dy <= -3)
+			   bouncer_dy = -3;
+
+		   
+		   if(col_det(bouncer_x, bouncer_y, bouncer_dx, bouncer_dy)){
+			   bouncer_dx = 0;
+			   bouncer_dy = 0;
 		   }
+
+		   //Attempting to have the motion decay quickly, looks more natural or whatever
+		   bouncer_dx *= 0.7;
+		   bouncer_dy *= 0.7;
+
+		   //If the velocity is less than half, then set it to NULL
+		   if(abs(bouncer_dx) < 0.2)
+			   bouncer_dx = 0;
+		   if(abs(bouncer_dy) < 0.2)
+			   bouncer_dy = 0;
 
 		   bouncer_x += bouncer_dx;
 		   bouncer_y += bouncer_dy;
@@ -400,7 +502,6 @@ int main(int argc, char **argv)
    al_destroy_event_queue(evt_q);
    al_destroy_display(display);
    al_destroy_bitmap(bouncer);
-   al_destroy_mixer(main_mix);
    al_destroy_config(config_ld);
 
    al_uninstall_audio();
