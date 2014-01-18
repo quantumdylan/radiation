@@ -1,4 +1,37 @@
 //RADIATION ENGINE v1.0.1
+//New this version:
+//Just about everything.
+//No seriously, the first version could do one thing: tile one fucking image
+//Well, that, and also send an animated square bouncing around the screen, controllable
+//partially via the arrow keys (modified velocity)
+//Now, for the actual features currently implemented:
+//Basic map/tile loading (dynamic tiles, static maps (for now))
+//Basic sounds (only one for the moment)
+//Basic player class (for both user controlled and non-player characters)
+// Player class allows for both user-controlled movements (just move()) and for autonomous
+// (think() and act()) movements
+// The player class also allows for automatic collision detection, storage of a sprite as the
+// visual representation of said player, and dynamic creation of new players (allowing for an
+// eventual "rogue-like" enemy spawning system to be implemented)
+//Scalable screen resolutions (though the tiles DO NOT scale yet)
+//Fixed FPS (changeable through config.ini)
+//Dynamic real-time event system (via the event queueing system in Allegro)
+
+//TODO:
+//Change the tile id system (currently has only 10 empty slots for tile textures)
+//Actually implement (fully) the level/map systems (for loading maps based off of level[x].lvl)
+//Fully implement audio system (multi-streams, mixers, etc...)
+//Flesh out AI in the player class
+//Fix collision detection (fix the hitboxes and such)
+//Add hitboxes to player characters (for projectile/melee stuff)
+//Add audio config file (for dynamic loading of sounds and such)
+//Possiblity of a rogue-like, random dungeon generator? (maybe)
+//Implement entity system (non-geometry objects that the user can interact with)
+// Examples of an entity (in this scope):
+//  -Door
+//  -Pickups (health, potions, etc...)
+//  -Blah
+
 #include <stdio.h>
 #include <string>
 #include <sstream>
@@ -14,6 +47,9 @@ using namespace std;
 
 int tile_w, tile_h;
 
+const int PLAYER_SPAWN = 18;
+const int NPC_SPAWN = 19;
+
 float FPS = 60;
 int SCREEN_W = 640;
 int SCREEN_H = 480;
@@ -28,7 +64,6 @@ ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
 ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
 ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
-ALLEGRO_FILE *file_handler; //Main file pointer
 
 double round(double d){
 	return floor(d + 0.5);
@@ -41,6 +76,9 @@ struct tile{ //Basic tile declaration
 
 struct tile_map{ //Basic map declaration
 	string raw_data; //Really, this fucking vector thing is being a bitch. I'm not down with dynamic
+	vector<int> formatted_data; //I'm hoping this works. I really need it to.
+	//So far this new vector is working fine, no problems with push_back()
+	//I am now going to attempt to completely change the way that input is processed by the engine
 	int id; //Map ref-id. Used to determine which floor is being displayed
 	string title; //Title of the map being displayed
 };
@@ -55,8 +93,6 @@ struct cartes{
 	float x; //X-pos variable
 	float y; //Y-pos variable
 };
-
-bool audio_active = false;
 
 bool col_det(float x, float y, float dx, float dy);
 
@@ -202,12 +238,40 @@ tile tile_reg[100]; //There is space for 100 unique tile entities with this
 player* character; //Just creating this as a temporary
 player* tempnpc; //Also a temporary npc entity
 
+void processmap(){
+	string temp_s;
+	bool ender = false;
+	int increment = 1;
+
+	for(int i = 0; i < curmap.raw_data.length(); i++){
+		if(curmap.raw_data.at(i) == '-'){
+			while(!ender){
+				if(i+increment >= curmap.raw_data.length())
+					break;
+				if(curmap.raw_data.at(i+increment) == '+')
+					ender = true; //Trigger the stop if we reach our next delimit
+				else{
+					temp_s.push_back(curmap.raw_data.at(i+increment));
+					curmap.formatted_data.push_back(atoi(temp_s.c_str()));
+				}
+				increment++;
+			}
+			//curmap.formatted_data.push_back(atoi(temp_s.c_str()));
+			temp_s = "";
+			increment = 1;
+			ender = false;
+		}
+	}
+	cout << "Finished processing map...\n";
+}
+
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
 
 	for(int i = 0; i < (tile_w*tile_h); i++){
-		curmap.raw_data.push_back(map_data.at(i));
+		curmap.raw_data.push_back(map_data.at(i)); //Store the raw data for processing later
 	}
+	processmap();
 }
 
 void loadtiles(){
@@ -251,7 +315,7 @@ void set_lvl(level lvl){
 
 //THIS FUNCTION MUST BE CALLED FIRST! IT SETS THE GLOBAL VARIABLES THAT ALL THE OTHER FUNCTIONS NEED TO
 //OPERATE PROPERLY!!!
-void loadlvl(){ //Wierd bug has been fixed within loadlvl(). It was a simple misalignment of function calls.
+void loadlvl(){ //Weird bug has been fixed within loadlvl(). It was a simple misalignment of function calls.
 	if(!level_cfg)
 		fprintf(stderr, "Level cfg not found!\n");
 
@@ -265,28 +329,20 @@ void loadlvl(){ //Wierd bug has been fixed within loadlvl(). It was a simple mis
 	display_t = id;
 }
 
-int get_tile(int pos){
-	int temp;
-
+int get_tile(int pos){ //Work on converting to a parser, where a certain symbol will delimit what is each individual entry
+	//int temp;
+	/*
 	stringstream converter;
-	
 	converter << curmap.raw_data.at(pos);
-
 	string temp_s;
-
 	temp_s = converter.str();
-	
-	temp = atoi(temp_s.c_str());
+	temp = atoi(temp_s.c_str());*/
 
-	return temp;
+	return curmap.formatted_data.at(pos); //Hopefully this new system will streamline things a bit
 }
 
 ALLEGRO_BITMAP* get_image(int id){
-	tile tl;
-
-	tl = tile_reg[id];
-
-	return tl.image;
+	return tile_reg[id].image;
 }
 
 void draw_map(){
@@ -346,12 +402,12 @@ int init_engine(){
    if(!al_install_audio()){
 	   fprintf(stderr, "failed to install audio subsystem!\ncontinuing with standard load\n");
    }
-   else{ audio_active = true; fprintf(stdout, "Audio installed!\n"); }
+   else{ fprintf(stdout, "Audio installed!\n"); }
 
    if(!al_init_acodec_addon()){
 	   fprintf(stderr, "failed to install audio subsystem!\ncontinuing with standard load\n");
    }
-   else{ audio_active = true; fprintf(stdout, "Audio codecs installed!\n"); }
+   else{ fprintf(stdout, "Audio codecs installed!\n"); }
 
    if(!config_ld){
 	   fprintf(stderr, "failed to load config file! setting to defaults...\n");
