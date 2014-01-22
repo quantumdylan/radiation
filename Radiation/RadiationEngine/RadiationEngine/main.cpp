@@ -47,6 +47,8 @@ using namespace std;
 
 int tile_w, tile_h;
 
+int tile_px = 32;
+
 const int PLAYER_SPAWN = 18;
 const int NPC_SPAWN = 19;
 
@@ -238,6 +240,14 @@ tile tile_reg[100]; //There is space for 100 unique tile entities with this
 player* character; //Just creating this as a temporary
 player* tempnpc; //Also a temporary npc entity
 
+/*NOTE!
+This code has been included as a part of my initiative to allow a large amount of tile data to be stored
+in the tile_map system. The raw data (raw_data) is going to be the direct string streamed from the config
+file, which will include both the data and the delimits as they are saved via Gamma (see map editor).
+The post-process data (formatted_data) is a vector<int> containing all of the data points.
+Perhaps in the future I will add in a specification for the tile_w and tile_h amounts, rather than having
+them be constant for a game as per the levels.lvl file. This might be a better way of handling the input.
+*/
 void processmap(){
 	string temp_s;
 	bool ender = false;
@@ -252,11 +262,11 @@ void processmap(){
 					ender = true; //Trigger the stop if we reach our next delimit
 				else{
 					temp_s.push_back(curmap.raw_data.at(i+increment));
-					curmap.formatted_data.push_back(atoi(temp_s.c_str()));
+					//curmap.formatted_data.push_back(atoi(temp_s.c_str()));
 				}
 				increment++;
 			}
-			//curmap.formatted_data.push_back(atoi(temp_s.c_str()));
+			curmap.formatted_data.push_back(atoi(temp_s.c_str()));
 			temp_s = "";
 			increment = 1;
 			ender = false;
@@ -268,9 +278,10 @@ void processmap(){
 void loadmap(){
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
 
-	for(int i = 0; i < (tile_w*tile_h); i++){
+	curmap.raw_data = map_data;
+	/*for(int i = 0; i < (tile_w*tile_h); i++){
 		curmap.raw_data.push_back(map_data.at(i)); //Store the raw data for processing later
-	}
+	}*/
 	processmap();
 }
 
@@ -329,15 +340,14 @@ void loadlvl(){ //Weird bug has been fixed within loadlvl(). It was a simple mis
 	display_t = id;
 }
 
-int get_tile(int pos){ //Work on converting to a parser, where a certain symbol will delimit what is each individual entry
-	//int temp;
-	/*
-	stringstream converter;
-	converter << curmap.raw_data.at(pos);
-	string temp_s;
-	temp_s = converter.str();
-	temp = atoi(temp_s.c_str());*/
+void update_players(){
+	//Attempting to have the motion decay quickly, looks more natural or whatever
+	character->decay(); //Okay, real talk. These are going to need to be automated, so implementing a registry
+	//of npcs and players and shit is going to become imperative within the next month or so. You've been warned.
+	tempnpc->think(character);
+}
 
+int get_tile(int pos){ //Work on converting to a parser, where a certain symbol will delimit what is each individual entry
 	return curmap.formatted_data.at(pos); //Hopefully this new system will streamline things a bit
 }
 
@@ -460,12 +470,17 @@ int init_engine(){
 }
 
 bool col_det(float x, float y, float dx, float dy){
-	int tile_y = round((y+dy)/32);
-	int tile_x = round((x+dx)/32);
-	char temp = curmap.raw_data.at(tile_y*tile_w + tile_x);
+	int tile_y = round((y+dy)/tile_px);
+	int tile_x = round((x+dx)/tile_px);
+	int temp = curmap.formatted_data.at(tile_y*tile_w + tile_x);
+
+	if((x+dx > tile_w*tile_px) || (y+dx < tile_h*tile_px))
+		return false;
+	if((y+dy > tile_h*tile_px) || (y+dy < tile_h*tile_px))
+		return false;
 
 	switch(temp){
-	case '0' : return false;
+	case 0 : return false; break;
 	default : return true;
 	}
 }
@@ -478,12 +493,12 @@ int main(int argc, char **argv)
    
 	char error_status = init_engine();
 
-   loadlvl(); //We need to call this first
+   loadlvl(); //We need to call this first (issues with tile_h and tile_w ATM
    loadtiles(); 
    loadmap();
 
-   character = new player(550, 100, tile_reg[5], 5, 5);
-   tempnpc = new player(440, 300, tile_reg[6], 2, 2);
+   character = new player(55, 10, tile_reg[5], 5, 5);
+   tempnpc = new player(44, 30, tile_reg[6], 2, 2);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -514,10 +529,6 @@ int main(int argc, char **argv)
 			   character->move(1);
 		   if(key[KEY_DOWN])
 			   character->move(3);
-
-		   //Attempting to have the motion decay quickly, looks more natural or whatever
-		   character->decay();
-		   tempnpc->think(character);
 
 		   redraw = true;
 	   }
