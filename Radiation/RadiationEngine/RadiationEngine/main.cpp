@@ -45,7 +45,7 @@
 
 using namespace std;
 
-int tile_w, tile_h;
+int tile_w, tile_h, level_h, level_w;
 
 int tile_px = 32;
 
@@ -65,6 +65,7 @@ ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first lev
 ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
 ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
+ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
 ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
 
 double round(double d){
@@ -86,9 +87,14 @@ struct tile_map{ //Basic map declaration
 };
 
 struct level{ //Basic level declaration
-	tile_map lvl[10][10]; //10x10 grid of maps which make up the entire level 
+	tile_map lvl[10][10]; //10x10 grid of maps which make up the entire level DEPRECATED
+	vector<tile_map> maps; //The store for the maps
 	int id; //Level ref-id. Used to determine which level is being displayed
 	string title; //Title of level being used
+};
+
+struct world{ //Basic world declaration
+	vector<level> levels; //All the levels in the game
 };
 
 struct cartes{ 
@@ -235,10 +241,18 @@ void player::decay(){
 tile_map curmap; //Memory-loaded map and level variables, something static (roughly) so as to decrease lag and shit
 level curlvl;
 
+world globalWorld; //The global world variable for the entire game
+
+vector<level> lvl_reg; //Registry for levels and shite, just raw levels and their predetermined ids
+
 tile tile_reg[100]; //There is space for 100 unique tile entities with this
+//Can we make this one into a vector? Please, Dylan? Seriously, this shit is NOT going to work in the
+//long run, nor is it professional. Come on, fix it soon.
 
 player* character; //Just creating this as a temporary
 player* tempnpc; //Also a temporary npc entity
+
+level loadlvl(string filename);
 
 /*NOTE!
 This code has been included as a part of my initiative to allow a large amount of tile data to be stored
@@ -248,41 +262,47 @@ The post-process data (formatted_data) is a vector<int> containing all of the da
 Perhaps in the future I will add in a specification for the tile_w and tile_h amounts, rather than having
 them be constant for a game as per the levels.lvl file. This might be a better way of handling the input.
 */
-void processmap(){
+//As of yet, this way seems to work not only more efficiently, but also opens up the amount of tiles to 
+//as many as can be created by the content creator. These changes have since been made permanent.
+tile_map processmap(tile_map tmp){
 	string temp_s;
 	bool ender = false;
 	int increment = 1;
 
-	for(int i = 0; i < curmap.raw_data.length(); i++){
-		if(curmap.raw_data.at(i) == '-'){
+	for(int i = 0; i < tmp.raw_data.length(); i++){
+		if(tmp.raw_data.at(i) == '-'){
 			while(!ender){
-				if(i+increment >= curmap.raw_data.length())
+				if(i+increment >= tmp.raw_data.length())
 					break;
-				if(curmap.raw_data.at(i+increment) == '+')
+				if(tmp.raw_data.at(i+increment) == '+')
 					ender = true; //Trigger the stop if we reach our next delimit
 				else{
-					temp_s.push_back(curmap.raw_data.at(i+increment));
+					temp_s.push_back(tmp.raw_data.at(i+increment));
 					//curmap.formatted_data.push_back(atoi(temp_s.c_str()));
 				}
 				increment++;
 			}
-			curmap.formatted_data.push_back(atoi(temp_s.c_str()));
+			tmp.formatted_data.push_back(atoi(temp_s.c_str()));
 			temp_s = "";
 			increment = 1;
 			ender = false;
 		}
 	}
 	cout << "Finished processing map...\n";
+	return tmp;
 }
 
-void loadmap(){
+tile_map loadmap(string filename){
+	tile_map tmpmap; //The temporary map for processing
+	map_cfg = al_load_config_file(filename.c_str()); //Load the specified file
+	if(!map_cfg){
+		cout << "No map: " + filename + " found! Aborting...\n";
+		return loadmap("map.mp"); //Load our backup map file, though it will not work for now.
+	}
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
 
-	curmap.raw_data = map_data;
-	/*for(int i = 0; i < (tile_w*tile_h); i++){
-		curmap.raw_data.push_back(map_data.at(i)); //Store the raw data for processing later
-	}*/
-	processmap();
+	tmpmap.raw_data = map_data;
+	return processmap(tmpmap);
 }
 
 void loadtiles(){
@@ -320,13 +340,7 @@ void loadtiles(){
 	fprintf(stdout, "\n\n\n");
 }
 
-void set_lvl(level lvl){
-	curlvl = lvl; //Just something simple to clear some clutter
-}
-
-//THIS FUNCTION MUST BE CALLED FIRST! IT SETS THE GLOBAL VARIABLES THAT ALL THE OTHER FUNCTIONS NEED TO
-//OPERATE PROPERLY!!!
-void loadlvl(){ //Weird bug has been fixed within loadlvl(). It was a simple misalignment of function calls.
+void loadworld(){
 	if(!level_cfg)
 		fprintf(stderr, "Level cfg not found!\n");
 
@@ -336,8 +350,66 @@ void loadlvl(){ //Weird bug has been fixed within loadlvl(). It was a simple mis
 	display_t = tile_w;
 	tile_h = atoi(al_get_config_value(level_cfg, "global", "h"));
 	display_t = tile_h;
-	int id = atoi(al_get_config_value(level_cfg, "levelone", "start"));
-	display_t = id;
+	
+	level_w = atoi(al_get_config_value(level_cfg, "levels", "lw"));
+	level_h = atoi(al_get_config_value(level_cfg, "levels", "lh"));
+
+	world tempwrld;
+	string file;
+	stringstream convert;
+
+	for(int i = 0; i < (level_w*level_h); i++){
+		convert.clear();
+		convert.str("");
+		convert << i + 1; //Make sure we have no zeroes
+		file = "levels/";
+		file += convert.str();
+		file += ".lvl"; //Set the filename to i and the extension to our level extension (.lvl)
+		tempwrld.levels.push_back(loadlvl(file));
+	}
+
+	globalWorld = tempwrld; //Set the global world to this scope's world
+	
+    loadtiles(); //Load all of the tiles following the skeletal loading above
+}
+
+void set_lvl(level lvl){
+	curlvl = lvl; //Just something simple to clear some clutter
+}
+
+void set_map(tile_map map){
+	curmap = map; //Also clearing clutter
+}
+
+level loadlvl(string filename){
+	ALLEGRO_CONFIG *temp_level_cfg = al_load_config_file(filename.c_str());
+	if(!temp_level_cfg)
+		cout << "Error loading level!\n";
+	string curpos;
+	string curfile;
+	//string filename;
+	int id = atoi(al_get_config_value(temp_level_cfg, "data", "start"));
+	int w = atoi(al_get_config_value(temp_level_cfg, "data",  "w"));
+	int h = atoi(al_get_config_value(temp_level_cfg, "data", "h"));
+	stringstream convert;
+	level templvl;
+	for(int i = id; i < (w*h + id); i++){
+		convert.clear();
+		convert.str("");
+		convert << i + 1;
+		curpos = "";
+		curfile = ""; //Finished initializing variables (more like sterilizing)
+		curpos = convert.str();
+		curfile = "maps/" + curpos + ".mp"; //Get the map filename
+
+		temp_lvls = al_load_config_file(curfile.c_str());
+
+		//filename = al_get_config_value(tile_cfg, curpos.c_str(), "file");
+		
+		templvl.maps.push_back(loadmap(curfile.c_str()));
+	}
+
+	return templvl;
 }
 
 void update_players(){
@@ -361,7 +433,7 @@ void draw_map(){
 			al_draw_bitmap(get_image(get_tile((tile_w*y)+x)), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
-	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0);
+	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0); //Need to seperate this from the map drawing function.
 	al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
 }
 
@@ -493,9 +565,10 @@ int main(int argc, char **argv)
    
 	char error_status = init_engine();
 
-   loadlvl(); //We need to call this first (issues with tile_h and tile_w ATM
-   loadtiles(); 
-   loadmap();
+   loadworld();
+   set_lvl(globalWorld.levels[0]);
+   set_map(curlvl.maps[0]);
+   //loadmap(); //Working on moving this to the level loader. I want these to be more automated
 
    character = new player(55, 10, tile_reg[5], 5, 5);
    tempnpc = new player(44, 30, tile_reg[6], 2, 2);
@@ -556,6 +629,7 @@ int main(int argc, char **argv)
 	   }
 
 	   if(redraw && al_is_event_queue_empty(evt_q)){
+		   update_players();
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
 		draw_map(); //Call the custom map printing function
