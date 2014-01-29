@@ -11,36 +11,56 @@ Written and compiled using MSVC++2012 framework, will port once stability and us
 
 README!
 This is still incredibly unstable and has nigh on no functionality at the moment. For now, the Debug folder
-contains all the executables and resources neccesarry to run the Radiation engine.
+contains all the executables and resources necessary to run the Radiation engine.
 
-The engine runs using three config files:
-	tiles.tl (the main list for the tile texture registry)
-	levels.lvl (the main list of levels and their associated maps)
-	map.mp (the main listing of maps)
+As of yet, there is no real way to "install" the engine, as it is still in its debug phase. On the first main
+release, binaries will be introduced for easy installation.
+
+For now, running the engine takes a few steps. These will be explained after a breakdown of the file-system is
+presented.
+
+Explanation of file-hierarchy:
+root/ - Contains executable and necessary libraries
+	/tiles - Contains tiles referenced by tiles.tl (*.png)
+	/maps - Contains ALL maps to be loaded into levels (*.mp)
+	/levels - Contains ALL level declaration files (*.lvl)
+	/ui - Contains various engine resources for the GUI
+		/fonts - Contains fonts used by the engine (*.ttf)
+	/bin-ext - DEPRECATED (contains unused libraries for Allegro)
+	/sounds - Contains ALL level sounds and their declaration files (*.wav)
 	
-It is neccesarry to note that tiles.tl IS modifiable, though you MUST follow the template provided as an example:
-[int id]
-id = an integer
-file = /tiles/whatever.png
+As long as this hierarchy is kept constant, the engine will work. I wil be implementing a "mod"
+folder, to make it easier to drop in custom content without overwriting engine files.
 
-And also that the [data] section must be modified to accomodate this change ***(end MUST be equal to the final entries id)***
+Explanation of file types:
+	*.mp - The main map file type. Built using the ALLEGRO_CONFIG structure, these files contain all the data
+			necessary for display and interpretation of a map. The map file itself is composed of raw map data,
+			in the form of a series of nodes separated by delimiters
+	*.tl - The main tile declaration file type. These config files contain references to all of the tiles placed
+			in the tile folder, as per the hierarchy above. The files consist of several nodes, each with a file path
+			and a numerical identifier. These will be dynamically loaded by the engine into the tile registry, which
+			will then be read to access the images during execution. The images MUST be in PNG format, and generally
+			must remain at a pixel size of 32x32.
+	*.lvl - The main level file type. These config files are used to "grab" a range of maps and arrange them into a grid
+			of maps. Each map, in this sense, constitutes one "room", and the level can be likened to an entire "floor".
+			In this way, it allows the user to move between rooms without having to read the disk again, helpful for
+			slow hard-drives.
+	*.sd - The main sound system config file type. This file will be used to point the engine to the correct paths
+			for various sounds, such as walking sounds, melee sounds, etc. It is also used to setup the audio system
+			at load time.
+			
+Now, to use the engine is rather tricky. With the currently provided tools, it is possible to make a single room in which
+the player can walk around in. To do this, you will need the Gamma Editor, which is the map editing software I've made along
+side this project. The current compiled version can be found on my github page.
 
-map.mp is generated using the Gamma Editor map editor. This can be found on my git as well. I've also supplied a generated
-map for testing purposes if anyone wants to try it out
+After outputting the map you have made (follow the instructions on Gamma), it is now time to start implementing that file
+into the level/map system. To do so, rename map.mp to 1.mp. The file-system reads all map and level files as numbers in
+sequence. Place this into the /maps/ folder. As of now, the 1.lvl file in /levels/ will be adequate to run the engine as is.
+Ensure that the map you've made does not go out of the bounds of the tiles that are declared, as using tiles that don't exist
+currently results in a crash. Keep this in mind, if the engine loads everything and crashes on display, it is most likely a
+tile error.
 
-As for now, I have a basic player class created. The player class can be used for creation of both the user's player and also
-non-player characters, or npc's. The player class movement is driven by a small snippet of code which is taken from the previous
-"bouncer" test code. This function can be called whenever an update in input (ie the user) or from the think() function (for npcs)
-occurs. It utilizes the col_det() function (which is globally available) to determine whether or not the character is colliding
-with world geometry
-
-All artwork at the moment is temporary and was made by myself in GIMP. The tiles are 32x32 pixels by default. I may add in scaling at some point
-and the ability to set the size of the image dynamically via the config file.
-
-The movement keys are currently (and permanently) mapped to the arrow keys. When I implement the menu system, I will allow for key remapping. But
-as this is more of a cosmetic thing, I probably won't throw in remapping until much later, possibly at the same time that controller/joystick control
-is implemented (hopefully).
-
+This should do it. Remember, the player will collide with anything that isn't 0 (floor), so plan accordingly.
 
 TODO:
 Audio system -> Very basically implemented.
