@@ -1,8 +1,8 @@
 #Main level declaration
 
 [global]
-w = 7
-h = 5
+w = 10
+h = 10
 
 [levels]
 lw = 1

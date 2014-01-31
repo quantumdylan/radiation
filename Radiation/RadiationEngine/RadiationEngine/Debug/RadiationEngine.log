@@ -1,5 +1,5 @@
 ﻿  main.cpp
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(272): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(275): warning C4018: '>=' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(542): warning C4715: 'init_engine' : not all control paths return a value
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(446): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(449): warning C4018: '>=' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(880): warning C4715: 'init_engine' : not all control paths return a value
   RadiationEngine.vcxproj -> C:\Users\dpackard\Documents\GitHub\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe

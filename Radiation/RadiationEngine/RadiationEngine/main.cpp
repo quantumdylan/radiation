@@ -67,14 +67,18 @@ ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile load
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
 ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
 ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-double round(double d){
-	return floor(d + 0.5);
-}
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MAIN STRUCTURE DECLARATION!
 struct tile{ //Basic tile declaration
 	ALLEGRO_BITMAP* image; //The image referenced for each tile
 	int id; //Image ref-id. Used for determing whether or not there are tile effects applied
+	bool collide; //Determines whether or not the tile has collision on or off (t/f)
 };
 
 struct tile_map{ //Basic map declaration
@@ -87,7 +91,6 @@ struct tile_map{ //Basic map declaration
 };
 
 struct level{ //Basic level declaration
-	tile_map lvl[10][10]; //10x10 grid of maps which make up the entire level DEPRECATED
 	vector<tile_map> maps; //The store for the maps
 	int id; //Level ref-id. Used to determine which level is being displayed
 	string title; //Title of level being used
@@ -95,15 +98,28 @@ struct level{ //Basic level declaration
 
 struct world{ //Basic world declaration
 	vector<level> levels; //All the levels in the game
+	string title; //Title of entire world
 };
 
 struct cartes{ 
 	float x; //X-pos variable
 	float y; //Y-pos variable
 };
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//FUNCTION PROTOTYPING!
 bool col_det(float x, float y, float dx, float dy);
+level loadlvl(string filename);
+cartes find_tile(int id);
+double round(double d);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN PLAYER CLASS DEFINITION!
 //Basically, I wan't to be able to create player characters
 //from nothing. In this case, it will be able to move (in conjuction
@@ -117,7 +133,7 @@ bool col_det(float x, float y, float dx, float dy);
 //You've done this, you bastard. I hope you're happy.
 class player{
 public:
-	player(int inx, int iny, tile player_tl, int dxc, int dyc);
+	player(int inx, int iny, tile player_tl, int dxc, int dyc, int type);
 	//~player();
 	cartes get_pos();
 	int getx();
@@ -132,12 +148,21 @@ private:
 	tile player_tile;
 	float x, y, dx, dy;
 	int dxcap, dycap;
+	int player_type;
 
 	void cap_vel();
 	void act();
+	void find_spawn();
 };
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-player::player(int inx, int iny, tile player_tl, int dxc, int dyc){
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Player constructor
+//PURPOSE: To create a new player entity, determine its starting stats and such
+//TODO: I don't know if anything else needs to be included
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 	//Initialize the values either to null or the given values
 	x = inx;
 	y = iny;
@@ -146,40 +171,140 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc){
 	dy = 0;
 	dxcap = dxc;
 	dycap = dyc;
-}
+	player_type = type;
 
+	find_spawn();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//find_spawn()
+//PURPOSE: To cycle through all of the tiles in the loaded map to determine the player's spawn
+//TODO: Nothing, that I can tell. Probably wrong, though
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void player::find_spawn(){
+	cartes temp;
+	switch(player_type){
+	case 0 : temp = find_tile(18); break;
+	case 1 : temp = find_tile(19); break;
+	default : temp.x = x; temp.y = y; //If all else fails, fall back on this
+	}
+	x = temp.x;
+	y = temp.y;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//think(player* play)
+//PURPOSE: For automated "monsters", this function will take the information regarding the pointed
+//player play. It will dictate the "monster's" actions towards the player.
+//TODO: Actually code decent pathing/decision making
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::think(player* play){
 	//This is where we can put code to automate the npc movement
 	//For now, I'm just going to have them do simple pathing
 	//Eventually, I hope to integrate the A* pathing algortihm
 	//to this. But that will take quite some time.
 
-	if(x < play->getx())
+	if(x < play->getx()){
 		move(2);
-	if(x > play->getx())
+		if(dx <= 1 && dx >= -1){
+			move(0);
+			dx = 0;
+			if(y < play->gety())
+				move(3);
+			if(y > play->gety())
+				move(1);
+		}
+	}
+	if(x > play->getx()){
 		move(0);
-	if(y < play->gety())
+		if(dx <= 1 && dx >= -1){
+			move(2);
+			dx = 0;
+			if(y < play->gety())
+				move(3);
+			if(y > play->gety())
+				move(1);
+		}	
+	}
+	if(y < play->gety()){
 		move(3);
-	if(y > play->gety())
+		if(dy <= 1 && dy >= -1){
+			move(1);
+			dy = 0;
+			if(x < play->getx())
+				move(2);
+			if(x > play->getx())
+				move(0);
+		}
+	}
+	if(y > play->gety()){
 		move(1);
+		if(dy <= 1 && dy >= -1){
+			move(3);
+			dy = 0;
+			if(x < play->getx())
+				move(2);
+			if(x > play->getx())
+				move(0);
+		}
+	}
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//act()
+//PURPOSE: To carry out the preperations of think()
+//TODO: Not even worrying about this for the moment, but basically everything
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::act(){
-
+	//Eventually
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_player_image()
+//PURPOSE: Grabs the current sprite used to represent the player
+//TODO: Sprite orientation/state?
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ALLEGRO_BITMAP* player::get_player_image(){
 	return player_tile.image;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//getx()
+//PURPOSE: Get the private x value
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int player::getx(){
 	return x;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//gety()
+//PURPOSE: Get the private y value
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int player::gety(){
 	return y;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_pos()
+//PURPOSE: Get the cartesian position of the player being referenced
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 cartes player::get_pos(){
 	cartes position;
 
@@ -188,7 +313,14 @@ cartes player::get_pos(){
 
 	return position;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//cap_vel()
+//PURPOSE: Prevent the player from going faster and faster, introduces a governor to the speed of player
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::cap_vel(){
 	if(dx >= dxcap)
 		dx = dxcap;
@@ -204,7 +336,14 @@ void player::cap_vel(){
 	if(abs(dy) <= 0.3)
 		dy = 0;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//change_vel(int mag, int id)
+//PURPOSE: Basic velocity changer for player movement
+//TODO: Finished (for now)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::change_vel(int mag, int id){
 	switch(id){
 	case 0 : dx -= mag; break;
@@ -214,7 +353,14 @@ void player::change_vel(int mag, int id){
 	default : ;
 	}
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//move(int dir)
+//PURPOSE: Derived from previous moveguy engine, core of the player's movement
+//TODO: Finished (for now)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::move(int dir){
 	change_vel(2, dir);
 	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
@@ -228,16 +374,38 @@ void player::move(int dir){
 	}
 	decay();
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_player_tile()
+//PURPOSE: Return private player tile
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 tile player::get_player_tile(){
 	return player_tile;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//decay()
+//PURPOSE: Private function to slowly decrease the velocity of the player, makes things feel more natural
+//movement-wise. We don't just instantly stop.
+//TODO: Do I need to do more? Might have to.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::decay(){
 	dx *= 0.8;
 	dy *= 0.8;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//END PLAYER CLASS!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//GLOBAL VARIABLE DECLARATION!
 tile_map curmap; //Memory-loaded map and level variables, something static (roughly) so as to decrease lag and shit
 level curlvl;
 
@@ -251,9 +419,15 @@ tile tile_reg[100]; //There is space for 100 unique tile entities with this
 
 player* character; //Just creating this as a temporary
 player* tempnpc; //Also a temporary npc entity
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-level loadlvl(string filename);
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//processmap(tile_map tmp)
+//PURPOSE: Take the raw_data section of a tile_map variable and parse/interpret it into formatted_data
+//TODO: Potential cleanup. So far, working well
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*NOTE!
 This code has been included as a part of my initiative to allow a large amount of tile data to be stored
 in the tile_map system. The raw data (raw_data) is going to be the direct string streamed from the config
@@ -278,8 +452,7 @@ tile_map processmap(tile_map tmp){
 					ender = true; //Trigger the stop if we reach our next delimit
 				else{
 					temp_s.push_back(tmp.raw_data.at(i+increment));
-					//curmap.formatted_data.push_back(atoi(temp_s.c_str()));
-				}
+					}
 				increment++;
 			}
 			tmp.formatted_data.push_back(atoi(temp_s.c_str()));
@@ -291,7 +464,15 @@ tile_map processmap(tile_map tmp){
 	cout << "Finished processing map...\n";
 	return tmp;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadmap(string filename)
+//PURPOSE: To load a map config file from the file-system and return the map
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 tile_map loadmap(string filename){
 	tile_map tmpmap; //The temporary map for processing
 	map_cfg = al_load_config_file(filename.c_str()); //Load the specified file
@@ -304,7 +485,17 @@ tile_map loadmap(string filename){
 	tmpmap.raw_data = map_data;
 	return processmap(tmpmap);
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadtiles()
+//PURPOSE: Loads PNG tiles from file-system as per the already loaded tile config file
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loadtiles(){
 	//Starting the automated file shit here
 	int start, end;
@@ -321,25 +512,49 @@ void loadtiles(){
 	string filename;
 	int id;
 	stringstream convert;
+	bool collide;
+	string temp;
 	for(int i = start; i < (end+1); i++){
 		convert.clear();
 		convert.str("");
 		convert << i;
 		curpos = convert.str();
+		temp = "";
+		filename = "";
+		id = NULL; //Nullify all variables, just in case. This is loading, we can take a while with this.
 
 		filename = al_get_config_value(tile_cfg, curpos.c_str(), "file");
 		id = atoi(al_get_config_value(tile_cfg, curpos.c_str(), "id"));
+		temp = al_get_config_value(tile_cfg, curpos.c_str(), "col");
+
+		if(temp == "t")
+			collide = true;
+		if(temp == "f")
+			collide = false;
 
 		tile_reg[id].image = al_load_bitmap(filename.c_str());
 		tile_reg[id].id = id;
+		tile_reg[id].collide = collide;
+
 		fprintf(stdout, "\n");
 		fprintf(stdout, al_get_config_value(tile_cfg, curpos.c_str(), "id"));
 		fprintf(stdout, "\n");
 		fprintf(stdout, filename.c_str());
+		cout << "\n" + temp + "\n";
 	}
 	fprintf(stdout, "\n\n\n");
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadworld()
+//PURPOSE: To load the main world information from the main world config file
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loadworld(){
 	if(!level_cfg)
 		fprintf(stderr, "Level cfg not found!\n");
@@ -372,22 +587,46 @@ void loadworld(){
 	
     loadtiles(); //Load all of the tiles following the skeletal loading above
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//set_lvl(level lvl)
+//PURPOSE: Loads the level provided to the global, current level
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void set_lvl(level lvl){
 	curlvl = lvl; //Just something simple to clear some clutter
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//set_map(tile_map map)
+//PURPOSE: Sets the provided map as the global current map for the engine
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void set_map(tile_map map){
 	curmap = map; //Also clearing clutter
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadlvl(string filename)
+//PURPOSE: To load a level from the provided file path
+//TODO: Possibly optimization. I'm sure this is too messy
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 level loadlvl(string filename){
 	ALLEGRO_CONFIG *temp_level_cfg = al_load_config_file(filename.c_str());
 	if(!temp_level_cfg)
 		cout << "Error loading level!\n";
 	string curpos;
 	string curfile;
-	//string filename;
 	int id = atoi(al_get_config_value(temp_level_cfg, "data", "start"));
 	int w = atoi(al_get_config_value(temp_level_cfg, "data",  "w"));
 	int h = atoi(al_get_config_value(temp_level_cfg, "data", "h"));
@@ -403,30 +642,91 @@ level loadlvl(string filename){
 		curfile = "maps/" + curpos + ".mp"; //Get the map filename
 
 		temp_lvls = al_load_config_file(curfile.c_str());
-
-		//filename = al_get_config_value(tile_cfg, curpos.c_str(), "file");
 		
 		templvl.maps.push_back(loadmap(curfile.c_str()));
 	}
 
+	al_destroy_config(temp_level_cfg); //Make sure we cleanup here.
 	return templvl;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//update_players()
+//PURPOSE: To update all registered players present in a scenario
+//TODO: Implement a registry based system for the players, then update them independently based
+//on what form of player they are (player or non-player)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void update_players(){
 	//Attempting to have the motion decay quickly, looks more natural or whatever
 	character->decay(); //Okay, real talk. These are going to need to be automated, so implementing a registry
 	//of npcs and players and shit is going to become imperative within the next month or so. You've been warned.
 	tempnpc->think(character);
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int get_tile(int pos){ //Work on converting to a parser, where a certain symbol will delimit what is each individual entry
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_tile(int pos)
+//PURPOSE: Return the integer id of the tile located at the linear position provided
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int get_tile(int pos){ 
 	return curmap.formatted_data.at(pos); //Hopefully this new system will streamline things a bit
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_image(int id)
+//PURPOSE: To retrieve (in ALLEGRO_BITMAP form) the specified tile with the given id from the tile registry
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ALLEGRO_BITMAP* get_image(int id){
 	return tile_reg[id].image;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//find_tile(int id)
+//PURPOSE: Helper function to find a specific tile id in the current map
+//TODO: Not sure. Perhaps clean-up?
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Used primarily for things like spawn location and stuff like that.
+//Could be used for pathing eventually, if my AI ever gets that in depth.
+cartes find_tile(int id){
+	cartes temp;
+
+	for(int x = 0; x < tile_w; x++){
+		for(int y = 0; y < tile_h; y++){
+			if(get_tile((tile_w*y)+x) == id){
+				temp.x = x*tile_px; //Make sure our points are converted to pixels rather than tiles
+				temp.y = y*tile_px;
+				}
+			}
+		}
+
+	return temp;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//draw_map()
+//PURPOSE: Render the current map to the screen
+//TODO: Remove anything NOT RELATED to maps. This means the characters and entities. These should
+//be handled (technically) by their own update function. Work on this next.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void draw_map(){
 	for(int x=0; x < tile_w; x++){
 		for(int y=0; y < tile_h; y++){
@@ -436,7 +736,16 @@ void draw_map(){
 	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0); //Need to seperate this from the map drawing function.
 	al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////\
+//apply_main_config()
+//PURPOSE: To open and interpret the various config data points from config.ini
+//TODO: Add options as UI is formed
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void apply_main_config(){
 	//Setting the screen resolution as per the configuration file
 	SCREEN_W = atoi(al_get_config_value(config_ld, "SCREENRES", "w"));
@@ -453,7 +762,16 @@ void apply_main_config(){
 	fprintf(stdout, al_get_config_value(config_ld, "FPS", "f"));
 	fprintf(stdout, "\n");
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//load_samples()
+//PURPOSE: Load all samples pointed to from the audio registry specified by the audio config file
+//TODO: Re-do the config system. Remember, paths do not need a root specifier in front, it is implied
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void load_samples(){
 	al_reserve_samples(1);
 	sample_test = al_load_sample("walk01.wav");
@@ -461,7 +779,27 @@ void load_samples(){
 		cout << "Fucking fuck, this shit didn't load. Check the load_samples() function. Stupid fucking program...\n";
 	}
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//GENERIC HELPER FUNCTIONS!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//round(double d)
+//PURPOSE: To return a rounded double of the input
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+double round(double d){
+	return floor(d + 0.5);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Initialization and cleanup functions
 int init_engine(){
 	if(!al_init()) {
       fprintf(stderr, "failed to initialize allegro!\n");
@@ -541,22 +879,51 @@ int init_engine(){
   } else { cout << "Sound config file loaded!\n"; load_samples(); }
 }
 
+void clean_up(){
+   al_destroy_timer(timer);
+   al_destroy_event_queue(evt_q);
+   al_destroy_display(display);
+   al_destroy_config(config_ld);
+   al_destroy_config(tile_cfg);
+   al_destroy_config(map_cfg);
+   al_destroy_config(level_cfg);
+   al_destroy_config(temp_lvls);
+
+   al_uninstall_audio();
+   al_uninstall_keyboard();
+   al_uninstall_system();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//col_det(float x, float y, float dx, float dy)
+//PURPOSE: Return true if the next tick will place the current position within the collision region of a
+//"stopping" object (e.g. a wall, a barricade, etc). Return false if the next tick will place the provided
+//position within a non-colliding region (e.g. a floor)
+//TODO: Clean things up, add a data point to the tile entity that specifies collision
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool col_det(float x, float y, float dx, float dy){
 	int tile_y = round((y+dy)/tile_px);
 	int tile_x = round((x+dx)/tile_px);
 	int temp = curmap.formatted_data.at(tile_y*tile_w + tile_x);
 
-	if((x+dx > tile_w*tile_px) || (y+dx < tile_h*tile_px))
-		return false;
-	if((y+dy > tile_h*tile_px) || (y+dy < tile_h*tile_px))
-		return false;
-
-	switch(temp){
-	case 0 : return false; break;
-	default : return true;
-	}
+	return tile_reg[temp].collide; //Completely eliminate case statements with extra meta-data!
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//PRE-MAIN DECLARATIONS DONE!
 
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//main(int argc, char **argv)
+//PURPOSE: Duh.
+//TODO: If I implement anything, it remains todo.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
 	bool redraw = true;
@@ -568,10 +935,9 @@ int main(int argc, char **argv)
    loadworld();
    set_lvl(globalWorld.levels[0]);
    set_map(curlvl.maps[0]);
-   //loadmap(); //Working on moving this to the level loader. I want these to be more automated
 
-   character = new player(55, 10, tile_reg[5], 5, 5);
-   tempnpc = new player(44, 30, tile_reg[6], 2, 2);
+   character = new player(55, 10, tile_reg[5], 5, 5, 0); //Basic player character
+   tempnpc = new player(44, 30, tile_reg[6], 2, 2, 1);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -629,7 +995,7 @@ int main(int argc, char **argv)
 	   }
 
 	   if(redraw && al_is_event_queue_empty(evt_q)){
-		   update_players();
+		update_players();
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
 		draw_map(); //Call the custom map printing function
@@ -639,14 +1005,7 @@ int main(int argc, char **argv)
 
    }
  
-   al_destroy_timer(timer);
-   al_destroy_event_queue(evt_q);
-   al_destroy_display(display);
-   al_destroy_config(config_ld);
-
-   al_uninstall_audio();
-   al_uninstall_keyboard();
-   al_uninstall_system();
+	clean_up();
  
    return 0;
 }
