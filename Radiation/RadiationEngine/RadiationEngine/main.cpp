@@ -66,7 +66,6 @@ ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
 ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
 ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
-ALLEGRO_SAMPLE *sample_test; //Testing out the audio system
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -101,12 +100,20 @@ struct world{ //Basic world declaration
 	string title; //Title of entire world
 };
 
-struct cartes{ 
+struct cartes{ //Helper to return two values simultaneously
 	float x; //X-pos variable
 	float y; //Y-pos variable
 };
+
+struct sound{ //Basic sound declaration
+	ALLEGRO_SAMPLE *sample; //The actual sound loaded from file
+	string type; //Category type from the config file
+	int id; //Keeping in line with the other declarations
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+vector<sound> audio_reg; //Basic audio registry for sounds
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -117,6 +124,8 @@ cartes find_tile(int id);
 double round(double d);
 int get_player_type_id(int id);
 int get_tile(int pos);
+sound find_sound(string type, bool random);
+float rng(int cap);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -151,11 +160,12 @@ private:
 	tile player_tile;
 	float x, y, dx, dy;
 	int dxcap, dycap;
-	int player_type;
+	int player_type, sound_tick;
 
 	void cap_vel();
 	void act();
 	void find_spawn();
+	void walk();
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -175,8 +185,7 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 	dxcap = dxc;
 	dycap = dyc;
 	player_type = type;
-
-	find_spawn();
+	sound_tick = 0;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -185,6 +194,7 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 //find_spawn()
 //PURPOSE: To cycle through all of the tiles in the loaded map to determine the player's spawn
 //TODO: Nothing, that I can tell. Probably wrong, though
+//WARNING! This code may now be deprecated. Pending removal.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void player::find_spawn(){
 	cartes temp;
@@ -382,13 +392,28 @@ void player::move(int dir){
 	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
 
 	switch(dir){
-	case 0 : if(!col_det(x, y, dx, dy)) x+=dx; break; //Just doing basic movement functions here. Make sure that the collisions are accounted for
-	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; break;
-	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; break;
-	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; break;
+	case 0 : if(!col_det(x, y, dx, dy)) x+=dx; walk(); break; //Just doing basic movement functions here. Make sure that the collisions are accounted for
+	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; walk(); break;
+	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; walk(); break;
+	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; walk(); break;
 	default : decay();
 	}
 	decay();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//walk()
+//PURPOSE: Play a walking sound for every movement. This should get annoying
+//TODO: Actually code it
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void player::walk(){
+	if(sound_tick == 40){
+		al_play_sample(find_sound("walking", true).sample, 1, ALLEGRO_AUDIO_PAN_NONE, 1, ALLEGRO_PLAYMODE_ONCE, NULL); //Lets see if this works
+		sound_tick = 0;
+	}
+	else{ sound_tick++; }
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -566,6 +591,76 @@ void loadtiles(){
 
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//rng(int cap)
+//PURPoSE: Main global random number generator for engine. Returns floats.
+//TODO: Refine generation so as to allow quick calling (upwards of 40 hertz) without repetition
+//(or serious repetition)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+float rng(int cap){
+	int return_value;
+
+	return_value = rand();
+	return_value = return_value*32/cap + 5;
+	return_value = return_value % cap;
+	
+	return return_value;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_total_sound_cat_count(string type)
+//PURPOSE: To determine the amount of sounds in a particular category
+//TODO: Make the name shorter?
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int get_total_sound_cat_count(string type){
+	int return_value = 0;
+
+	for(int i = 0; i < audio_reg.size(); i++){
+		if(audio_reg[i].type == type)
+			return_value++;
+	}
+
+	return return_value;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_sound(int id, string type)
+//PURPOSE: Gets sound at that id and with that type
+//TODO: Nothing
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+sound get_sound(int id, string type){
+	for(int i = 0; i < audio_reg.size(); i++){
+		if(audio_reg[i].type == type && audio_reg[i].id == id)
+			return audio_reg[i];
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//find_sound(string type, bool random)
+//PURPOSE: To find a sound with the given information. Returns the first found type, unless a rand is specified
+//TODO: Work out RNG
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+sound find_sound(string type, bool random){
+	if(random){
+		float randomizer = rng(get_total_sound_cat_count(type)); //Find the amount of category sounds, and then set that to cap
+		return get_sound(randomizer, type);
+	}
+	if(!random){
+		return get_sound(0, type); //Find just the first one in the registry
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -661,7 +756,6 @@ bool create_nonplayer_entity(int x, int y, tile tl){
 		player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
 	}
-
 	return false; //If everything else completely fails, we will return false
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -679,7 +773,6 @@ bool create_player_entity(int x, int y, tile tl){
 		player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
 	}
-
 	return false; //If everything else completely fails, we will return false
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -738,7 +831,6 @@ level loadlvl(string filename){
 		
 		templvl.maps.push_back(loadmap(curfile.c_str()));
 	}
-
 	al_destroy_config(temp_level_cfg); //Make sure we cleanup here.
 	return templvl;
 }
@@ -752,11 +844,7 @@ level loadlvl(string filename){
 //TODO: Improve performance by putting the player entities further up in the stack
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void move_player(int dir){
-	for(int i = 0; i < player_reg.size(); i++){
-		if(get_player_type_id(i) == 0){
-			player_reg[i]->move(dir); //Move the player entity at this address
-		}
-	}
+	find_controlled_player()->move(dir);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -771,8 +859,8 @@ void spawn_players(){
 	for(int y = 0; y < tile_h; y++){
 		for(int x = 0; x < tile_w; x++){
 			switch(get_tile((y*tile_w)+x)){
-			case 18 : create_player_entity(x, y, tile_reg[5]); break; //Spawn our player
-			case 19 : create_nonplayer_entity(x, y, tile_reg[6]); break; //Spawn our NPC
+			case 18 : create_player_entity(x, y, tile_reg[5]); break; //Spawn a player
+			case 19 : create_nonplayer_entity(x, y, tile_reg[6]); break; //Spawn a NPC
 			default : ; //Do nothing
 			}
 		}
@@ -787,16 +875,11 @@ void spawn_players(){
 //on what form of player they are (player or non-player)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void update_players(){
-	//Attempting to have the motion decay quickly, looks more natural or whatever
-	//character->decay(); //Okay, real talk. These are going to need to be automated, so implementing a registry
-	//of npcs and players and shit is going to become imperative within the next month or so. You've been warned.
-	//tempnpc->think(character);
-
 	for(int i = 0; i < player_reg.size(); i++){
 		switch(get_player_type_id(i)){
 		case 0 : player_reg[i]->decay(); break;
 		case 1 : player_reg[i]->think(find_controlled_player()); break; //Call our helper function for this random npc
-		default : ;
+		default : ; //Do nothing
 		}
 	}
 }
@@ -839,7 +922,6 @@ ALLEGRO_BITMAP* get_image(int id){
 //Could be used for pathing eventually, if my AI ever gets that in depth.
 cartes find_tile(int id){
 	cartes temp;
-
 	for(int x = 0; x < tile_w; x++){
 		for(int y = 0; y < tile_h; y++){
 			if(get_tile((tile_w*y)+x) == id){
@@ -848,7 +930,6 @@ cartes find_tile(int id){
 				}
 			}
 		}
-
 	return temp;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -868,8 +949,6 @@ void draw_map(){
 			al_draw_bitmap(get_image(get_tile((tile_w*y)+x)), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
-	//al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0); //Need to seperate this from the map drawing function.
-	//al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -878,7 +957,7 @@ void draw_map(){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //draw_entities()
 //PURPOSE: Draw out all non-map (dynamic) geometry
-//TODO: Actually code it all out and implement the entity registries
+//TODO: Finished for now
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void draw_entities(){
 	//Player registry being printed to screen
@@ -886,6 +965,20 @@ void draw_entities(){
 		al_draw_bitmap(player_reg[i]->get_player_image(), player_reg[i]->getx(), player_reg[i]->gety(), 0);
 		//This should make the player entity drawing independent. No more variables dictating this stuff
 	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//draw()
+//PURPOSE: Automates all the draw functions with one function call
+//TODO: Case by case rendering? (Possiblity to exclude certain aspects?)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void draw(){
+	update_players(); //Update the current states of the player characters present in player_reg
+	draw_map(); //Draw the base map geometry
+	draw_entities(); //Draw the entities on top of the base geometry
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -923,11 +1016,53 @@ void apply_main_config(){
 //TODO: Re-do the config system. Remember, paths do not need a root specifier in front, it is implied
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void load_samples(){
-	al_reserve_samples(1);
-	sample_test = al_load_sample("walk01.wav");
-	if(!sample_test){
-		cout << "Fucking fuck, this shit didn't load. Check the load_samples() function. Stupid fucking program...\n";
-	}
+	int total_cat = atoi(al_get_config_value(sound_cfg, "data", "total"));
+	int samples = atoi(al_get_config_value(sound_cfg, "data", "samples"));
+	cout << "Total Samples: " + samples;
+	al_reserve_samples(samples);
+	string category;
+	string path;
+	int cat_samples;
+	string filename;
+	string file;
+	stringstream convert;
+	stringstream converter;
+	string cur_cat;
+	string temp_i;
+	sound temp;
+
+	//Starting loop
+	for(int j = 0; j < total_cat; j++){
+		category = "";
+		cur_cat = "";
+		converter.clear();
+		converter.str("");
+		converter << j + 1;
+		cur_cat = converter.str();
+		category = al_get_config_value(sound_cfg, "data", cur_cat.c_str()); //Start off with the first specified value
+		cat_samples = atoi(al_get_config_value(sound_cfg, category.c_str(), "end"));
+		path = al_get_config_value(sound_cfg, category.c_str(), "path");
+		for(int i = 0; i < cat_samples; i++){
+			convert.clear();
+			convert.str("");
+			convert << i;
+			temp_i = convert.str();
+			file = al_get_config_value(sound_cfg, category.c_str(), temp_i.c_str());
+			filename = path + file; //Combine the path with the filename
+
+			temp.sample = al_load_sample(filename.c_str()); //Load the sample to our temporary sound
+			temp.type = category; //Save the category type
+			temp.id = i; //Also put down the general id for this category
+			audio_reg.push_back(temp); //And add this to the stack
+
+			cout << temp_i + "\n";
+
+			if(audio_reg[i].sample){
+				cout << "Loaded sample: " + filename + "\n";
+			}
+			else{ cout << "Failed to load sample: " + filename + "\n"; }
+		}
+	}	
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -951,6 +1086,8 @@ double round(double d){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Initialization and cleanup functions
 int init_engine(){
+	srand(time(NULL));
+
 	if(!al_init()) {
       fprintf(stderr, "failed to initialize allegro!\n");
       return -1;
@@ -1027,6 +1164,10 @@ int init_engine(){
 	  cout << "Fuck, the sound config isn't loading. FUCK.\n";
 	  return -10;
   } else { cout << "Sound config file loaded!\n"; load_samples(); }
+
+  loadworld();
+   set_lvl(globalWorld.levels[0]);
+   set_map(curlvl.maps[0]);
 }
 
 void clean_up(){
@@ -1081,13 +1222,6 @@ int main(int argc, char **argv)
 	bool key[4] = {false, false, false, false};
    
 	char error_status = init_engine();
-
-   loadworld();
-   set_lvl(globalWorld.levels[0]);
-   set_map(curlvl.maps[0]);
-
-   //character = new player(55, 10, tile_reg[5], 5, 5, 0); //Basic player character
-   //tempnpc = new player(44, 30, tile_reg[6], 2, 2, 1);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -1151,11 +1285,9 @@ int main(int argc, char **argv)
 	   }
 
 	   if(redraw && al_is_event_queue_empty(evt_q)){
-		update_players();
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
-		draw_map(); //Call the custom map printing function
-		draw_entities(); //Call the entity printing function
+		draw();
 		al_flip_display(); //Bring buffer up
 	   }
 

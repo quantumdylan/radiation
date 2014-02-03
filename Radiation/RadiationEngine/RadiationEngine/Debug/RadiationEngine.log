@@ -1,10 +1,13 @@
 ﻿  main.cpp
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(464): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(467): warning C4018: '>=' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(630): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(755): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(795): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(885): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(638): warning C4715: 'find_controlled_player' : not all control paths return a value
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(1030): warning C4715: 'init_engine' : not all control paths return a value
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(489): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(492): warning C4018: '>=' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(621): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(638): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(725): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(878): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(964): warning C4018: '<' : signed/unsigned mismatch
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(642): warning C4715: 'get_sound' : not all control paths return a value
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(660): warning C4715: 'find_sound' : not all control paths return a value
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(733): warning C4715: 'find_controlled_player' : not all control paths return a value
+c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(1171): warning C4715: 'init_engine' : not all control paths return a value
   RadiationEngine.vcxproj -> C:\Users\dpackard\Documents\GitHub\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe
