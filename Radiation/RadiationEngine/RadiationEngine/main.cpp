@@ -115,6 +115,8 @@ bool col_det(float x, float y, float dx, float dy);
 level loadlvl(string filename);
 cartes find_tile(int id);
 double round(double d);
+int get_player_type_id(int id);
+int get_tile(int pos);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -138,7 +140,8 @@ public:
 	cartes get_pos();
 	int getx();
 	int gety();
-	void move(int dir); //
+	int get_type();
+	void move(int dir); 
 	tile get_player_tile();
 	ALLEGRO_BITMAP* get_player_image();
 	void change_vel(int mag, int id);
@@ -194,6 +197,19 @@ void player::find_spawn(){
 	y = temp.y;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_type()
+//PURPOSE: Returns the player type for this entity
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int player::get_type(){
+	return player_type;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -413,6 +429,8 @@ world globalWorld; //The global world variable for the entire game
 
 vector<level> lvl_reg; //Registry for levels and shite, just raw levels and their predetermined ids
 
+vector<player*> player_reg; //Registry of memory addresses for player entities //Hehe, titties
+
 tile tile_reg[100]; //There is space for 100 unique tile entities with this
 //Can we make this one into a vector? Please, Dylan? Seriously, this shit is NOT going to work in the
 //long run, nor is it professional. Come on, fix it soon.
@@ -591,6 +609,81 @@ void loadworld(){
 
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_player_entity(int id)
+//PURPOSE: Return the entity with the specified id
+//TODO: Actually code this
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+player* get_player_entity(int id){
+	return player_reg.at(id); //Return the player at the specified id
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//find_controlled_player()
+//PURPOSE: Helper function for think(). Automagically finds the controlled player in the entity stack
+//TODO: Optimize code, these for loops can't be good for performance
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+player* find_controlled_player(){
+	for(int i = 0; i < player_reg.size(); i++){
+		switch(get_player_type_id(i)){
+		case 0 : return player_reg[i]; break;
+		case 1 : break;
+		default : cout << "No player characters found! Can this even happen?\n";
+		}
+	}
+	cout << "Error if this is being displayed. find_controlled_player() couldn't find a controlled player\n";
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_player_type_id(int id)
+//PURPOSE: Return the type id for the player in the registry at id
+//TODO: Work out a quick and efficient means of getting the data
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int get_player_type_id(int id){
+	return player_reg[id]->get_type();
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//create_nonplayer_entity(int x, int y, tile tl)
+//PURPOSE: Called dynamically to create a non-player entity
+//TODO: Code, etc.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool create_nonplayer_entity(int x, int y, tile tl){
+	player* temp = new player(x, y, tl, 3, 3, 1); //We set type to one, as this is npcharacter
+	if(temp){
+		player_reg.push_back(temp);
+		return true; //If everything worked, we can add it to the stack and return true
+	}
+
+	return false; //If everything else completely fails, we will return false
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//create_player_entity(int x, int y, tile tl)
+//PURPOSE: Called dynamically to create a player entity
+//TODO: Code, etc.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool create_player_entity(int x, int y, tile tl){
+	player* temp = new player(x, y, tl, 5, 5, 0); //We set type to zero, as this is player controlled
+	if(temp){
+		player_reg.push_back(temp);
+		return true; //If everything worked, we can add it to the stack and return true
+	}
+
+	return false; //If everything else completely fails, we will return false
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //set_lvl(level lvl)
@@ -654,6 +747,40 @@ level loadlvl(string filename){
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//move_player(int dir)
+//PURPOSE: Move all the player entities in the registry as per the direction
+//TODO: Improve performance by putting the player entities further up in the stack
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void move_player(int dir){
+	for(int i = 0; i < player_reg.size(); i++){
+		if(get_player_type_id(i) == 0){
+			player_reg[i]->move(dir); //Move the player entity at this address
+		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//spawn_players()
+//PURPOSE: To spawn specified NPCs at predetermined spawn points
+//TODO: Work on code
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void spawn_players(){
+	for(int y = 0; y < tile_h; y++){
+		for(int x = 0; x < tile_w; x++){
+			switch(get_tile((y*tile_w)+x)){
+			case 18 : create_player_entity(x, y, tile_reg[5]); break; //Spawn our player
+			case 19 : create_nonplayer_entity(x, y, tile_reg[6]); break; //Spawn our NPC
+			default : ; //Do nothing
+			}
+		}
+	}
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //update_players()
 //PURPOSE: To update all registered players present in a scenario
 //TODO: Implement a registry based system for the players, then update them independently based
@@ -661,9 +788,17 @@ level loadlvl(string filename){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void update_players(){
 	//Attempting to have the motion decay quickly, looks more natural or whatever
-	character->decay(); //Okay, real talk. These are going to need to be automated, so implementing a registry
+	//character->decay(); //Okay, real talk. These are going to need to be automated, so implementing a registry
 	//of npcs and players and shit is going to become imperative within the next month or so. You've been warned.
-	tempnpc->think(character);
+	//tempnpc->think(character);
+
+	for(int i = 0; i < player_reg.size(); i++){
+		switch(get_player_type_id(i)){
+		case 0 : player_reg[i]->decay(); break;
+		case 1 : player_reg[i]->think(find_controlled_player()); break; //Call our helper function for this random npc
+		default : ;
+		}
+	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -733,15 +868,30 @@ void draw_map(){
 			al_draw_bitmap(get_image(get_tile((tile_w*y)+x)), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
-	al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0); //Need to seperate this from the map drawing function.
-	al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
+	//al_draw_bitmap(character->get_player_image(), character->getx(), character->gety(), 0); //Need to seperate this from the map drawing function.
+	//al_draw_bitmap(tempnpc->get_player_image(), tempnpc->getx(), tempnpc->gety(), 0);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//draw_entities()
+//PURPOSE: Draw out all non-map (dynamic) geometry
+//TODO: Actually code it all out and implement the entity registries
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void draw_entities(){
+	//Player registry being printed to screen
+	for(int i = 0; i < player_reg.size(); i++){
+		al_draw_bitmap(player_reg[i]->get_player_image(), player_reg[i]->getx(), player_reg[i]->gety(), 0);
+		//This should make the player entity drawing independent. No more variables dictating this stuff
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////\
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //apply_main_config()
 //PURPOSE: To open and interpret the various config data points from config.ini
 //TODO: Add options as UI is formed
@@ -902,7 +1052,7 @@ void clean_up(){
 //PURPOSE: Return true if the next tick will place the current position within the collision region of a
 //"stopping" object (e.g. a wall, a barricade, etc). Return false if the next tick will place the provided
 //position within a non-colliding region (e.g. a floor)
-//TODO: Clean things up, add a data point to the tile entity that specifies collision
+//TODO: Clean things up
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool col_det(float x, float y, float dx, float dy){
 	int tile_y = round((y+dy)/tile_px);
@@ -913,7 +1063,7 @@ bool col_det(float x, float y, float dx, float dy){
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PRE-MAIN DECLARATIONS DONE!
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -936,8 +1086,8 @@ int main(int argc, char **argv)
    set_lvl(globalWorld.levels[0]);
    set_map(curlvl.maps[0]);
 
-   character = new player(55, 10, tile_reg[5], 5, 5, 0); //Basic player character
-   tempnpc = new player(44, 30, tile_reg[6], 2, 2, 1);
+   //character = new player(55, 10, tile_reg[5], 5, 5, 0); //Basic player character
+   //tempnpc = new player(44, 30, tile_reg[6], 2, 2, 1);
 
    al_set_target_bitmap(al_get_backbuffer(display));
 
@@ -951,6 +1101,12 @@ int main(int argc, char **argv)
 
    al_start_timer(timer);
 
+   spawn_players();
+
+   //TESTING CODE!
+   
+
+
    while(!doexit){
 
 	   ALLEGRO_EVENT ev; //Event variable for this scope
@@ -961,13 +1117,13 @@ int main(int argc, char **argv)
 
 	   if(ev.type == ALLEGRO_EVENT_TIMER){ //Basic ping from timer
 		   if(key[KEY_LEFT])
-			   character->move(0);
+			   move_player(0);
 		   if(key[KEY_RIGHT])
-			   character->move(2);
+			   move_player(2);
 		   if(key[KEY_UP])
-			   character->move(1);
+			   move_player(1);
 		   if(key[KEY_DOWN])
-			   character->move(3);
+			   move_player(3);
 
 		   redraw = true;
 	   }
@@ -999,6 +1155,7 @@ int main(int argc, char **argv)
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
 		draw_map(); //Call the custom map printing function
+		draw_entities(); //Call the entity printing function
 		al_flip_display(); //Bring buffer up
 	   }
 
