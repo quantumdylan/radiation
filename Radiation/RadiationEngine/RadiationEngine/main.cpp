@@ -456,12 +456,12 @@ vector<level> lvl_reg; //Registry for levels and shite, just raw levels and thei
 
 vector<player*> player_reg; //Registry of memory addresses for player entities //Hehe, titties
 
-tile tile_reg[100]; //There is space for 100 unique tile entities with this
+vector<tile> tile_reg; //Registry of tiles for displaying
+
+//tile tile_reg[100]; //There is space for 100 unique tile entities with this
 //Can we make this one into a vector? Please, Dylan? Seriously, this shit is NOT going to work in the
 //long run, nor is it professional. Come on, fix it soon.
-
-player* character; //Just creating this as a temporary
-player* tempnpc; //Also a temporary npc entity
+//Alright, alright, you irritating little bitch. I've fixed it for you.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -471,16 +471,6 @@ player* tempnpc; //Also a temporary npc entity
 //PURPOSE: Take the raw_data section of a tile_map variable and parse/interpret it into formatted_data
 //TODO: Potential cleanup. So far, working well
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*NOTE!
-This code has been included as a part of my initiative to allow a large amount of tile data to be stored
-in the tile_map system. The raw data (raw_data) is going to be the direct string streamed from the config
-file, which will include both the data and the delimits as they are saved via Gamma (see map editor).
-The post-process data (formatted_data) is a vector<int> containing all of the data points.
-Perhaps in the future I will add in a specification for the tile_w and tile_h amounts, rather than having
-them be constant for a game as per the levels.lvl file. This might be a better way of handling the input.
-*/
-//As of yet, this way seems to work not only more efficiently, but also opens up the amount of tiles to 
-//as many as can be created by the content creator. These changes have since been made permanent.
 tile_map processmap(tile_map tmp){
 	string temp_s;
 	bool ender = false;
@@ -532,11 +522,9 @@ tile_map loadmap(string filename){
 
 
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //loadtiles()
-//PURPOSE: Loads PNG tiles from file-system as per the already loaded tile config file
+//PURPOSE: Loads PNG tiles from file-system as per the already loaded tile config file (now a vector)
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loadtiles(){
@@ -557,6 +545,7 @@ void loadtiles(){
 	stringstream convert;
 	bool collide;
 	string temp;
+	tile temp_tile;
 	for(int i = start; i < (end+1); i++){
 		convert.clear();
 		convert.str("");
@@ -575,9 +564,15 @@ void loadtiles(){
 		if(temp == "f")
 			collide = false;
 
-		tile_reg[id].image = al_load_bitmap(filename.c_str());
-		tile_reg[id].id = id;
-		tile_reg[id].collide = collide;
+		temp_tile.image = al_load_bitmap(filename.c_str());
+		temp_tile.id = id;
+		temp_tile.collide = collide;
+
+		//tile_reg[id].image = al_load_bitmap(filename.c_str());
+		//tile_reg[id].id = id;
+		//tile_reg[id].collide = collide;
+
+		tile_reg.push_back(temp_tile);
 
 		fprintf(stdout, "\n");
 		fprintf(stdout, al_get_config_value(tile_cfg, curpos.c_str(), "id"));
@@ -593,7 +588,7 @@ void loadtiles(){
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //rng(int cap)
-//PURPoSE: Main global random number generator for engine. Returns floats.
+//PURPOSE: Main global random number generator for engine. Returns floats.
 //TODO: Refine generation so as to allow quick calling (upwards of 40 hertz) without repetition
 //(or serious repetition)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -613,7 +608,7 @@ float rng(int cap){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //get_total_sound_cat_count(string type)
 //PURPOSE: To determine the amount of sounds in a particular category
-//TODO: Make the name shorter?
+//TODO: Make the name shorter? *Nah. This should be fine. I like descriptive function names.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int get_total_sound_cat_count(string type){
 	int return_value = 0;
