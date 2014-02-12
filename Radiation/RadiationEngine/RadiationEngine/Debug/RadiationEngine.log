@@ -1,13 +1,2 @@
 ﻿  main.cpp
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(479): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(482): warning C4018: '>=' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(616): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(633): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(720): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(873): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(959): warning C4018: '<' : signed/unsigned mismatch
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(655): warning C4715: 'find_sound' : not all control paths return a value
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(728): warning C4715: 'find_controlled_player' : not all control paths return a value
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(637): warning C4715: 'get_sound' : not all control paths return a value
-c:\users\dpackard\documents\github\radiation\radiation\radiationengine\radiationengine\main.cpp(1166): warning C4715: 'init_engine' : not all control paths return a value
   RadiationEngine.vcxproj -> C:\Users\dpackard\Documents\GitHub\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe

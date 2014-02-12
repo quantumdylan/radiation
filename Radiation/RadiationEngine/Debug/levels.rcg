@@ -1,0 +1,11 @@
+#Main level declaration
+
+[global]
+w = 10
+h = 10
+
+[levels]
+lw = 1
+lh = 1
+
+

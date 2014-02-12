@@ -6,7 +6,6 @@
 //partially via the arrow keys (modified velocity)
 //Now, for the actual features currently implemented:
 //Basic map/tile loading (dynamic tiles, static maps (for now))
-//Basic sounds (only one for the moment)
 //Basic player class (for both user controlled and non-player characters)
 // Player class allows for both user-controlled movements (just move()) and for autonomous
 // (think() and act()) movements
@@ -16,15 +15,13 @@
 //Scalable screen resolutions (though the tiles DO NOT scale yet)
 //Fixed FPS (changeable through config.ini)
 //Dynamic real-time event system (via the event queueing system in Allegro)
+//Audio system for playing sounds on certain events (dynamic loading of sounds)
 
 //TODO:
-//Change the tile id system (currently has only 10 empty slots for tile textures)
-//Actually implement (fully) the level/map systems (for loading maps based off of level[x].lvl)
 //Fully implement audio system (multi-streams, mixers, etc...)
 //Flesh out AI in the player class
 //Fix collision detection (fix the hitboxes and such)
 //Add hitboxes to player characters (for projectile/melee stuff)
-//Add audio config file (for dynamic loading of sounds and such)
 //Possiblity of a rogue-like, random dungeon generator? (maybe)
 //Implement entity system (non-geometry objects that the user can interact with)
 // Examples of an entity (in this scope):
@@ -61,10 +58,12 @@ ALLEGRO_DISPLAY *display = NULL; //Basic display pointer
 ALLEGRO_EVENT_QUEUE *evt_q = NULL; //Basic event queue
 ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
 ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
-ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.lvl"); //Loads first level config file
-ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.mp"); //Loads first map file
-ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.tl"); //Load the tile loading configuration file
-ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.sd"); //Load the main audio config file
+ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.rcg"); //Loads first level config file
+ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.rcg"); //Loads first map file
+ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.rcg"); //Load the tile loading configuration file
+ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.rcg"); //Load the main audio config file
+ALLEGRO_CONFIG *tiledec_cfg = al_load_config_file("tiledec.rcg"); //Load the tile decleration file
+ALLEGRO_CONFIG *entity_cfg = al_load_config_file("entities.rcg"); //Load the entity config file
 ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -78,6 +77,7 @@ struct tile{ //Basic tile declaration
 	ALLEGRO_BITMAP* image; //The image referenced for each tile
 	int id; //Image ref-id. Used for determing whether or not there are tile effects applied
 	bool collide; //Determines whether or not the tile has collision on or off (t/f)
+	string action; //A simple string which will point to an action for the tile. Loaded from tiledec.rcg
 };
 
 struct tile_map{ //Basic map declaration
@@ -126,13 +126,100 @@ int get_player_type_id(int id);
 int get_tile(int pos);
 sound find_sound(string type, bool random);
 float rng(int cap);
+tile get_raw_tile(int pos);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MAIN ENTITY CLASS DEFINITION!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+class entity{
+public:
+	entity(int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt);
+	ALLEGRO_BITMAP* get_entity_tile();
+	cartes get_pos();
+	void move(int dir);
+	void update_state();
+protected:
+	tile entity_tile;
+	string enttype;
+	bool collision, moveable;
+	float x, y, dx, dy, dxc, dyc, hurtfac;
+
+	void decay_motion();
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//entity(...)
+//PURPOSE: Constructs a new entity (given the supplied information)
+//TODO: Keep up-to-date with the rest of the entity systems
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+entity::entity(int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt){
+	x = inx;
+	y = iny;
+	dxc = dxcap;
+	dyc = dycap;
+	hurtfac = hurt;
+	collision = col;
+	enttype = type;
+	moveable = move;
+	//This will have set all the variables/flags for the entity
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_entity_tile()
+//PURPOSE: Gets the current tile (or the only tile if animation is static) for the pointed entity
+//TODO:
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ALLEGRO_BITMAP* entity::get_entity_tile(){
+	return entity_tile.image;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//update_state()
+//PURPOSE: Updates the state of an entity (position and otherwise)
+//TODO: Keep up-to-date
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void entity::update_state(){
+	decay_motion();
+
+	if(!col_det(x, y, dx, dy)){
+		if(dx > dxc)
+			dx = dxc;
+		if(dx < -dxc)
+			dx = -dxc;
+		if(dy > dyc)
+			dy = dyc;
+		if(dy < -dyc)
+			dy = -dyc;
+
+		x += dx;
+		y += dy;
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//decay_motion()
+//PURPOSE: I liked this code from the original player class, so I decided to add it to the base entity class
+//TODO: Blah
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void entity::decay_motion(){
+	dx *= 0.8;
+	dy *= 0.8;
+
+	if(abs(dx) <= 0.3)
+		dx = 0;
+	if(abs(dy) <= 0.3)
+		dy = 0;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN PLAYER CLASS DEFINITION!
-//Basically, I wan't to be able to create player characters
+//Basically, I want to be able to create player characters
 //from nothing. In this case, it will be able to move (in conjuction
 //with the col_det() function) and return its position and its
 //assigned tile texture.
@@ -145,7 +232,6 @@ float rng(int cap);
 class player{
 public:
 	player(int inx, int iny, tile player_tl, int dxc, int dyc, int type);
-	//~player();
 	cartes get_pos();
 	int getx();
 	int gety();
@@ -180,8 +266,8 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 	x = inx;
 	y = iny;
 	player_tile = player_tl;
-	dx = 0;
-	dy = 0;
+	dx = 1;
+	dy = -1;
 	dxcap = dxc;
 	dycap = dyc;
 	player_type = type;
@@ -392,10 +478,10 @@ void player::move(int dir){
 	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
 
 	switch(dir){
-	case 0 : if(!col_det(x, y, dx, dy)) x+=dx; walk(); break; //Just doing basic movement functions here. Make sure that the collisions are accounted for
-	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; walk(); break;
-	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; walk(); break;
-	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; walk(); break;
+	case 0 : if(!col_det(x, y, dx, dy)) x+=dx; break; //Just doing basic movement functions here. Make sure that the collisions are accounted for
+	case 1 : if(!col_det(x, y, dx, dy)) y+=dy; break;
+	case 2 : if(!col_det(x, y, dx, dy)) x+=dx; break;
+	case 3 : if(!col_det(x, y, dx, dy)) y+=dy; break;
 	default : decay();
 	}
 	decay();
@@ -456,12 +542,9 @@ vector<level> lvl_reg; //Registry for levels and shite, just raw levels and thei
 
 vector<player*> player_reg; //Registry of memory addresses for player entities //Hehe, titties
 
-vector<tile> tile_reg; //Registry of tiles for displaying
+vector<entity*> entity_reg; //Registry of entities (or rather their address)
 
-//tile tile_reg[100]; //There is space for 100 unique tile entities with this
-//Can we make this one into a vector? Please, Dylan? Seriously, this shit is NOT going to work in the
-//long run, nor is it professional. Come on, fix it soon.
-//Alright, alright, you irritating little bitch. I've fixed it for you.
+vector<tile> tile_reg; //Registry of tiles for displaying
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -537,15 +620,38 @@ void loadtiles(){
 
 	data = al_get_config_value(tile_cfg, "data", "end");
 	end = atoi(data.c_str());
-	fprintf(stdout, "\n\nTotal textures: %i\n", (end+1));
+	cout << "\n\nTotal textures: " + (end+1);
+	cout << "\n";
 
 	string curpos;
 	string filename;
-	int id;
+	string action;
+	string registry;
+	vector<int> check_id;
+	int id, check_end;
 	stringstream convert;
 	bool collide;
 	string temp;
+	string temp_int;
 	tile temp_tile;
+	check_end = atoi(al_get_config_value(tiledec_cfg, "data", "total"));
+	registry = al_get_config_value(tiledec_cfg, "data", "registry");
+	//This bit of code will detect which tiles are to be flagged as utility tiles
+	for(int i = 0; i < registry.size(); i++){
+		convert.clear();
+		convert.str("");
+		convert << i;
+		temp = "";
+
+		temp = convert.str();
+		if(registry.at(i) == ','){
+			check_id.push_back(atoi(temp_int.c_str()));
+			temp_int = "";
+		}
+		else{
+			temp_int.push_back(registry.at(i));
+		}
+	}
 	for(int i = start; i < (end+1); i++){
 		convert.clear();
 		convert.str("");
@@ -553,11 +659,13 @@ void loadtiles(){
 		curpos = convert.str();
 		temp = "";
 		filename = "";
+		action = "";
 		id = NULL; //Nullify all variables, just in case. This is loading, we can take a while with this.
 
 		filename = al_get_config_value(tile_cfg, curpos.c_str(), "file");
 		id = atoi(al_get_config_value(tile_cfg, curpos.c_str(), "id"));
 		temp = al_get_config_value(tile_cfg, curpos.c_str(), "col");
+		
 
 		if(temp == "t")
 			collide = true;
@@ -568,17 +676,29 @@ void loadtiles(){
 		temp_tile.id = id;
 		temp_tile.collide = collide;
 
-		//tile_reg[id].image = al_load_bitmap(filename.c_str());
-		//tile_reg[id].id = id;
-		//tile_reg[id].collide = collide;
+		/*
+		if(atoi(curpos.c_str()) == check_id[i]){
+			temp_tile.action = al_get_config_value(tiledec_cfg, curpos.c_str(), "action");
+		}*/
 
-		tile_reg.push_back(temp_tile);
+		for(int j = 0; j < check_id.size(); j++){
+			if(atoi(curpos.c_str()) == check_id[j]){
+				temp_tile.action = al_get_config_value(tiledec_cfg, curpos.c_str(), "action");
+			}
+		}
+		if(temp_tile.action == "")
+			temp_tile.action = "nothing";
+
+
+		tile_reg.push_back(temp_tile); //Push back the temporary tile data to our registry
 
 		fprintf(stdout, "\n");
 		fprintf(stdout, al_get_config_value(tile_cfg, curpos.c_str(), "id"));
 		fprintf(stdout, "\n");
 		fprintf(stdout, filename.c_str());
-		cout << "\n" + temp + "\n";
+		cout << "\n" + temp + "\nAction:";
+		cout << temp_tile.action;
+		cout << "\n";
 	}
 	fprintf(stdout, "\n\n\n");
 }
@@ -590,7 +710,7 @@ void loadtiles(){
 //rng(int cap)
 //PURPOSE: Main global random number generator for engine. Returns floats.
 //TODO: Refine generation so as to allow quick calling (upwards of 40 hertz) without repetition
-//(or serious repetition)
+//(or serious repetition). Also, making it truly random is going to be necesarry.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 float rng(int cap){
 	int return_value;
@@ -846,6 +966,38 @@ void move_player(int dir){
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//move_map(int dir)
+//PURPOSE: Move the referenced map NSE or W and preserve the location of the player (or change dependent on what
+//is happening). It will seek out the corresponding portal in the next map (N to S, E to W, etc.)
+//TODO: Work out how to actually move fluidly between the two (maybe an animation?)
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void move_map(int dir){
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//do_tile_actions()
+//PURPOSE: To automatically perform all regulated tile actions (as they are specified by tiledec.rcg)
+//TODO:
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void do_tile_actions(){
+	for(int y = 0; y < tile_h; y++){
+		for(int x = 0; x < tile_w; x++){
+			if(get_raw_tile((y*tile_w)+x).action == "spawn_player") //Spawn the player
+				create_player_entity(x, y, tile_reg[5]);
+			if(get_raw_tile((y*tile_w)+x).action == "spawn_enemy") //SPawn the enemy
+				create_nonplayer_entity(x, y, tile_reg[6]);
+		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //spawn_players()
 //PURPOSE: To spawn specified NPCs at predetermined spawn points
 //TODO: Work on code
@@ -861,6 +1013,8 @@ void spawn_players(){
 		}
 	}
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -893,6 +1047,10 @@ int get_tile(int pos){
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+tile get_raw_tile(int pos){
+	return tile_reg[curmap.formatted_data.at(pos)]; //This should work. Whoops, can't directly access tile_reg
+}
 
 
 
@@ -1128,13 +1286,23 @@ int init_engine(){
    if(!map_cfg){
 	   fprintf(stderr, "Failed to load map!\n");
 	   return -5;
-   }
+   } else
    { fprintf(stdout, "Map file loaded!\n"); }
+
+   if(!tiledec_cfg){
+	   fprintf(stderr, "Failed to load tile decleration config file!\n");
+	   return -6;
+   } else { cout << "Tile decleration file loaded!\n"; }
+
+   if(!entity_cfg){
+	   fprintf(stderr, "Failed to load entity config file!\n");
+	   return -11;
+   } else { cout << "Entity decleration file loaded!\n"; }
  
    display = al_create_display(SCREEN_W, SCREEN_H);
    if(!display) {
       fprintf(stderr, "failed to create display!\n");
-      return -6;
+      return -12;
    }
    else{ fprintf(stdout, "Display initialized!\n"); }
 
@@ -1163,6 +1331,7 @@ int init_engine(){
   loadworld();
    set_lvl(globalWorld.levels[0]);
    set_map(curlvl.maps[0]);
+   return 0;
 }
 
 void clean_up(){
@@ -1174,6 +1343,8 @@ void clean_up(){
    al_destroy_config(map_cfg);
    al_destroy_config(level_cfg);
    al_destroy_config(temp_lvls);
+   al_destroy_config(tiledec_cfg);
+   al_destroy_config(entity_cfg);
 
    al_uninstall_audio();
    al_uninstall_keyboard();
@@ -1194,8 +1365,27 @@ bool col_det(float x, float y, float dx, float dy){
 	int tile_y = round((y+dy)/tile_px);
 	int tile_x = round((x+dx)/tile_px);
 	int temp = curmap.formatted_data.at(tile_y*tile_w + tile_x);
+	tile temp_tile = get_raw_tile((tile_y*tile_w)+tile_x);
 
-	return tile_reg[temp].collide; //Completely eliminate case statements with extra meta-data!
+	
+	if(temp_tile.action == "move_north"){
+		move_map(1);
+		return tile_reg[temp].collide;
+	}
+	if(temp_tile.action == "move_east"){
+		move_map(2);
+		return tile_reg[temp].collide;
+	}
+	if(temp_tile.action == "move_south"){
+		move_map(3);
+		return tile_reg[temp].collide;
+	}
+	if(temp_tile.action == "move_west"){
+		move_map(4);
+		return tile_reg[temp].collide;
+	}
+	
+	return tile_reg[temp].collide;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PRE-MAIN DECLARATIONS DONE!
@@ -1230,7 +1420,8 @@ int main(int argc, char **argv)
 
    al_start_timer(timer);
 
-   spawn_players();
+   //spawn_players();
+   do_tile_actions();
 
    //TESTING CODE!
    
