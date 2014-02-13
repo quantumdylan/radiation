@@ -73,6 +73,16 @@ ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN STRUCTURE DECLARATION!
+struct cartes{ //Helper to return two values simultaneously
+	float x; //X-pos variable
+	float y; //Y-pos variable
+};
+
+struct tile_entity{ //Helper structure for entities (containing x, y, type and name)
+	cartes pos;
+	string type, name;
+};
+
 struct tile{ //Basic tile declaration
 	ALLEGRO_BITMAP* image; //The image referenced for each tile
 	int id; //Image ref-id. Used for determing whether or not there are tile effects applied
@@ -87,6 +97,8 @@ struct tile_map{ //Basic map declaration
 	//I am now going to attempt to completely change the way that input is processed by the engine
 	int id; //Map ref-id. Used to determine which floor is being displayed
 	string title; //Title of the map being displayed
+	vector<tile_entity> entities; //A vector containing loaded entities from the map file
+	int directions[4]; //An array of direction information (NESW)
 };
 
 struct level{ //Basic level declaration
@@ -98,11 +110,6 @@ struct level{ //Basic level declaration
 struct world{ //Basic world declaration
 	vector<level> levels; //All the levels in the game
 	string title; //Title of entire world
-};
-
-struct cartes{ //Helper to return two values simultaneously
-	float x; //X-pos variable
-	float y; //Y-pos variable
 };
 
 struct sound{ //Basic sound declaration
@@ -127,6 +134,7 @@ int get_tile(int pos);
 sound find_sound(string type, bool random);
 float rng(int cap);
 tile get_raw_tile(int pos);
+tile get_raw_reg_tile(int pos);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -136,16 +144,20 @@ tile get_raw_tile(int pos);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 class entity{
 public:
-	entity(int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt);
+	entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname);
 	ALLEGRO_BITMAP* get_entity_tile();
 	cartes get_pos();
+	int getx();
+	int gety();
+	string getname();
+	string gettype();
 	void move(int dir);
 	void update_state();
 protected:
 	tile entity_tile;
-	string enttype;
+	string enttype, name;
 	bool collision, moveable;
-	float x, y, dx, dy, dxc, dyc, hurtfac;
+	float x, y, dx, dy, dxc, dyc, hurtfac, facingdir;
 
 	void decay_motion();
 };
@@ -155,7 +167,7 @@ protected:
 //PURPOSE: Constructs a new entity (given the supplied information)
 //TODO: Keep up-to-date with the rest of the entity systems
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-entity::entity(int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt){
+entity::entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname){
 	x = inx;
 	y = iny;
 	dxc = dxcap;
@@ -164,7 +176,52 @@ entity::entity(int inx, int iny, int dxcap, int dycap, string type, bool col, bo
 	collision = col;
 	enttype = type;
 	moveable = move;
+	dx = indx;
+	dy = indy;
+	facingdir = face;
+	entity_tile = get_raw_reg_tile(tileid);
+	name = inname;
 	//This will have set all the variables/flags for the entity
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//getname()
+//PURPOSE: To return the name of the entity
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+string entity::getname(){
+	return name;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//gettype()
+//PURPOSE: To return the type of the entity
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+string entity::gettype(){
+	return enttype;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//getx()
+//PURPOSE: Gets the x
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int entity::getx(){
+	return x;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//gety()
+//PURPOSE: Gets the y
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int entity::gety(){
+	return y;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -194,6 +251,11 @@ void entity::update_state(){
 			dy = dyc;
 		if(dy < -dyc)
 			dy = -dyc;
+
+		if(abs(dx) <= 0.3)
+			dx = 0;
+		if(abs(dy) <= 0.3)
+			dy = 0;
 
 		x += dx;
 		y += dy;
@@ -237,6 +299,7 @@ public:
 	int gety();
 	int get_type();
 	void move(int dir); 
+	void setpos(float newx, float newy);
 	tile get_player_tile();
 	ALLEGRO_BITMAP* get_player_image();
 	void change_vel(int mag, int id);
@@ -272,6 +335,18 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 	dycap = dyc;
 	player_type = type;
 	sound_tick = 0;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//setpos(int x, int y)
+//PURPOSE: To manually set the current position of the character
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void player::setpos(float newx, float newy){
+	x = newx;
+	y = newy;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -544,6 +619,8 @@ vector<player*> player_reg; //Registry of memory addresses for player entities /
 
 vector<entity*> entity_reg; //Registry of entities (or rather their address)
 
+vector<entity*> entity_cat; //A catalogue of loaded entities, which can be called and loaded into the registry
+
 vector<tile> tile_reg; //Registry of tiles for displaying
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -577,7 +654,7 @@ tile_map processmap(tile_map tmp){
 			ender = false;
 		}
 	}
-	cout << "Finished processing map...\n";
+	cout << "Finished processing.\n";
 	return tmp;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -596,10 +673,99 @@ tile_map loadmap(string filename){
 		cout << "No map: " + filename + " found! Aborting...\n";
 		return loadmap("map.mp"); //Load our backup map file, though it will not work for now.
 	}
-	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED?
+	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED? Yeah.
+
+	int total_ent = atoi(al_get_config_value(map_cfg, "data", "total_e"));
+
+	string temp, name, type;
+	int n, e, s, w;
+	stringstream convert;
+	cartes temp_pos;
+	tile_entity temp_ent;
+
+	n = atoi(al_get_config_value(map_cfg, "map_data", "n"));
+	e = atoi(al_get_config_value(map_cfg, "map_data", "e"));
+	s = atoi(al_get_config_value(map_cfg, "map_data", "s"));
+	w = atoi(al_get_config_value(map_cfg, "map_data", "w"));
+
+	tmpmap.directions[0] = n;
+	tmpmap.directions[1] = e;
+	tmpmap.directions[2] = s;
+	tmpmap.directions[3] = w;
+
+	for(int i = 0; i < total_ent; i++){
+		convert.clear();
+		convert.str("");
+		convert << i;
+		temp = convert.str();
+
+		temp_pos.x = atoi(al_get_config_value(map_cfg, temp.c_str(), "x"));
+		temp_pos.y = atoi(al_get_config_value(map_cfg, temp.c_str(), "y"));
+
+		name = al_get_config_value(map_cfg, temp.c_str(), "name");
+		type = al_get_config_value(map_cfg, temp.c_str(), "type");
+
+		temp_ent.name = name;
+		temp_ent.type = type;
+		temp_ent.pos = temp_pos;
+
+		tmpmap.entities.push_back(temp_ent); //Add this particular entity to the stack
+	}
 
 	tmpmap.raw_data = map_data;
+	cout << "Processing map " + filename + "\n";
 	return processmap(tmpmap);
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadentities()
+//PURPOSE: Read the entity rcg file and save all values to the entity catalogue
+//TODO: Add more flags and shit. Bitches love flags.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void loadentities(){
+	int total = atoi(al_get_config_value(entity_cfg, "data", "total")); //Grab our meta-data data section again
+	int tile, temp_i;
+	string pos, name, type, temp;
+	bool collide, move;
+	float hurt, dxc, dyc;
+	entity* temp_entity;
+	stringstream convert;
+
+	for(int i = 0; i < total; i++){
+		convert.clear();
+		pos = "";
+		temp_i = i + 1;
+		convert.str("");
+		convert << temp_i;
+		pos = convert.str();
+
+		name = al_get_config_value(entity_cfg, pos.c_str(), "name");
+		type = al_get_config_value(entity_cfg, pos.c_str(), "type");
+		tile = atoi(al_get_config_value(entity_cfg, pos.c_str(), "tile"));
+		temp = al_get_config_value(entity_cfg, pos.c_str(), "col");
+		
+		if(temp == "t")
+			collide = true;
+		if(temp == "f")
+			collide = false;
+
+		temp = al_get_config_value(entity_cfg, pos.c_str(), "move");
+
+		if(temp == "t")
+			move = true;
+		if(temp == "f")
+			move = false;
+
+		hurt = atoi(al_get_config_value(entity_cfg, pos.c_str(), "hurtfact"));
+		dxc = atoi(al_get_config_value(entity_cfg, pos.c_str(), "dxc"));
+		dyc = atoi(al_get_config_value(entity_cfg, pos.c_str(), "dyc"));
+
+		temp_entity = new entity(0, 0, 0, 0, dxc, dyc, type, collide, move, hurt, 0, tile, name);
+		entity_cat.push_back(temp_entity); //Add our temp entity to the stack
+	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -787,6 +953,9 @@ void loadworld(){
 	if(!level_cfg)
 		fprintf(stderr, "Level cfg not found!\n");
 
+	loadtiles(); //Load all of the tiles following the skeletal loading above
+	loadentities(); //Load all of the entities into the catalogue
+
 	string display_t;
 
 	tile_w = atoi(al_get_config_value(level_cfg, "global", "w"));
@@ -813,10 +982,25 @@ void loadworld(){
 
 	globalWorld = tempwrld; //Set the global world to this scope's world
 	
-    loadtiles(); //Load all of the tiles following the skeletal loading above
+    
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//find_entity(string type, string name)
+//PURPOSE: Return the entity with the provided type and name
+//TODO: Streamline the entity storage process?
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+entity* find_entity(string type, string name){
+	for(int i = 0; i < entity_cat.size(); i++){
+		if(entity_cat[i]->getname() == name && entity_cat[i]->gettype() == type){
+			return entity_cat[i]; //We've found our entity. Return it.
+		}
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -878,6 +1062,17 @@ bool create_nonplayer_entity(int x, int y, tile tl){
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//create_entity(...)
+//PURPOSE: To create a new entity based on the supplied template, at that particular point
+//int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt
+bool create_entity(int x, int y, string type, string name){
+	return false;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //create_player_entity(int x, int y, tile tl)
 //PURPOSE: Called dynamically to create a player entity
 //TODO: Code, etc.
@@ -912,6 +1107,17 @@ void set_lvl(level lvl){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void set_map(tile_map map){
 	curmap = map; //Also clearing clutter
+	if(entity_reg.size() == NULL){
+		//Do nothing
+	}
+	if(entity_reg.size() != NULL){
+		for(int i = 0; i < entity_reg.size(); i++){
+			entity_reg.pop_back(); //Remove all the entities currently in the registry...
+		}
+	}
+	for(int i = 0; i < map.entities.size(); i++){
+		entity_reg.push_back(find_entity(map.entities[i].type, map.entities[i].name)); //This will pull the entity data out of the map and find it in the catalogue.
+	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -972,7 +1178,29 @@ void move_player(int dir){
 //TODO: Work out how to actually move fluidly between the two (maybe an animation?)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void move_map(int dir){
-
+	switch(dir){
+	case 0 : 
+		if(curmap.directions[0] != NULL){
+			set_map(curlvl.maps[curmap.directions[0] - 1]); //This should grab the next map from our level set. Should.
+			find_controlled_player()->setpos(find_tile(22).x, find_tile(22).y - tile_px);
+		} break;
+	case 1 :
+		if(curmap.directions[1] != NULL){
+			set_map(curlvl.maps[curmap.directions[1] - 1]);
+			find_controlled_player()->setpos(find_tile(23).x + tile_px, find_tile(23).y);
+		} break;
+	case 2 :
+		if(curmap.directions[2] != NULL){
+			set_map(curlvl.maps[curmap.directions[2] - 1]);
+			find_controlled_player()->setpos(find_tile(20).x, find_tile(20).y + tile_px);
+		} break;
+	case 3 :
+		if(curmap.directions[3] != NULL){
+			set_map(curlvl.maps[curmap.directions[3] - 1]);
+			find_controlled_player()->setpos(find_tile(21).x - tile_px, find_tile(21).y);
+		} break;
+	default : cout << "There is no map referenced in current map.\n";
+	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -981,6 +1209,7 @@ void move_map(int dir){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //do_tile_actions()
 //PURPOSE: To automatically perform all regulated tile actions (as they are specified by tiledec.rcg)
+//These actions, of course, are only the startup actions. No more than that.
 //TODO:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void do_tile_actions(){
@@ -1001,6 +1230,7 @@ void do_tile_actions(){
 //spawn_players()
 //PURPOSE: To spawn specified NPCs at predetermined spawn points
 //TODO: Work on code
+//WARNING! This code has been marked as obsolete, and may be deleted within the next few updates
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void spawn_players(){
 	for(int y = 0; y < tile_h; y++){
@@ -1048,9 +1278,28 @@ int get_tile(int pos){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_raw_reg_tile(int pos)
+//PURPOSE: To pick out a tile from the registry based on tile id
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+tile get_raw_reg_tile(int pos){
+	return tile_reg[pos];
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_raw_tile(int pos)
+//PURPOSE: To simply pick out an entire tile from the tile registry (based on map)
+//TODO: Nothing
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 tile get_raw_tile(int pos){
 	return tile_reg[curmap.formatted_data.at(pos)]; //This should work. Whoops, can't directly access tile_reg
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -1117,6 +1366,15 @@ void draw_entities(){
 	for(int i = 0; i < player_reg.size(); i++){
 		al_draw_bitmap(player_reg[i]->get_player_image(), player_reg[i]->getx(), player_reg[i]->gety(), 0);
 		//This should make the player entity drawing independent. No more variables dictating this stuff
+	}
+	if(entity_reg.size() == NULL){
+		//Do nothing
+	}
+	else{
+		for(int i = 0; i < entity_reg.size(); i++){
+			al_draw_bitmap(entity_reg[i]->get_entity_tile(), entity_reg[i]->getx(), entity_reg[i]->gety(), 0);
+			//This will draw an entity at the specified point with specified position
+		}
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1367,21 +1625,20 @@ bool col_det(float x, float y, float dx, float dy){
 	int temp = curmap.formatted_data.at(tile_y*tile_w + tile_x);
 	tile temp_tile = get_raw_tile((tile_y*tile_w)+tile_x);
 
-	
 	if(temp_tile.action == "move_north"){
-		move_map(1);
+		move_map(0);
 		return tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_east"){
-		move_map(2);
+		move_map(1);
 		return tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_south"){
-		move_map(3);
+		move_map(2);
 		return tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_west"){
-		move_map(4);
+		move_map(3);
 		return tile_reg[temp].collide;
 	}
 	
@@ -1420,12 +1677,7 @@ int main(int argc, char **argv)
 
    al_start_timer(timer);
 
-   //spawn_players();
    do_tile_actions();
-
-   //TESTING CODE!
-   
-
 
    while(!doexit){
 

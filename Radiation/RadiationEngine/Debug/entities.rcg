@@ -1,10 +1,13 @@
 [data]
-total = 0
+total = 1
 
 [1]
-type = static_prop            #This is the type of entity
-col = f                       #This is whether or not the entity has collision data
-tile = check.png              #This is the tile assigned to the entity
-move = f                      #This flag determines if the entity can be moved by the player
-hurtfact = 0                  #This flag determines how much damage the entity does to the player on contact
-name = chair1                 #This is the name of the entity
+type = static_prop
+col = f
+tile = 12
+move = f
+hurtfact = 0
+name = chair1
+dxc = 2
+dyc = 2
+
