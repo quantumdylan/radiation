@@ -1,6 +1,6 @@
 [data]
-registry = 18,19,20,21,22,23,24,25,26,27
-total = 10
+registry = 18,19,20,21,22,23
+total = 6
 
 [18]
 action = spawn_player

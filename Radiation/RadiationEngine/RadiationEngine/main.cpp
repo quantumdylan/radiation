@@ -724,6 +724,15 @@ tile_map loadmap(string filename){
 //loadentities()
 //PURPOSE: Read the entity rcg file and save all values to the entity catalogue
 //TODO: Add more flags and shit. Bitches love flags.
+//CURRENT FLAGS:
+//	name (the name of the entity)
+//	type (the type-set of the entity)
+//	tile (the associated tile-id)
+//	col (does it collide?)
+//	move (can it be moved?)
+//	hurtfact (how much the object hurts players)
+//	dxc (cap of dx)
+//	dyc (cap of dy)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loadentities(){
 	int total = atoi(al_get_config_value(entity_cfg, "data", "total")); //Grab our meta-data data section again
@@ -841,11 +850,6 @@ void loadtiles(){
 		temp_tile.image = al_load_bitmap(filename.c_str());
 		temp_tile.id = id;
 		temp_tile.collide = collide;
-
-		/*
-		if(atoi(curpos.c_str()) == check_id[i]){
-			temp_tile.action = al_get_config_value(tiledec_cfg, curpos.c_str(), "action");
-		}*/
 
 		for(int j = 0; j < check_id.size(); j++){
 			if(atoi(curpos.c_str()) == check_id[j]){
@@ -1030,6 +1034,7 @@ player* find_controlled_player(){
 	}
 	cout << "Error if this is being displayed. find_controlled_player() couldn't find a controlled player\n";
 }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1063,9 +1068,15 @@ bool create_nonplayer_entity(int x, int y, tile tl){
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //create_entity(...)
-//PURPOSE: To create a new entity based on the supplied template, at that particular point
-//int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt
-bool create_entity(int x, int y, string type, string name){
+//PURPOSE: To create a new entity based on the supplied template, at that particular point. This shouldn't need
+//to be called for now, unless someone wants to spontaneously create an entity. Maybe this will come into play
+//later.
+//int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt, int id, string name
+//TODO: Keep shit up to date
+bool create_entity(int x, int y, string type, string name, bool col, bool move, float hurt, int dycap, int dxcap, int id){
+	entity* temp;
+	temp = new entity(x, y, 0, 0, dxcap, dycap, type, col, move, hurt, 0, id, name);
+	entity_reg.push_back(temp);
 	return false;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1086,6 +1097,7 @@ bool create_player_entity(int x, int y, tile tl){
 	return false; //If everything else completely fails, we will return false
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
