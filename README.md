@@ -1,4 +1,4 @@
-RADIATION ENGINE v1.0.1
+RADIATION ENGINE v1.0.2
 
 Top-down, tile-based game engine, designed to be reusable for multiple projects (flexible
 loading of tile images, maps, sounds, etc.)
@@ -61,9 +61,9 @@ Explanation of file structures:
 			will follow a simple numerical identifying scheme, with each section having an integer number as it's title.
 	*.ent - The entity files are similar to model files for other game engines; they provide the engine with a material to be
 			used as the rendered prop, they provide collision data, and they also have several flags which can be set during
-			spawn times which change the way the entity, the player, and the world interact with one another. For now, the entity
-			file is still a WIP, as I have not fully implemented an automated way to load the files as I have with the other
-			types listed above.
+			spawn times which change the way the entity, the player, and the world interact with one another. Each entity
+			consists of several data points and flags, which are loaded into a catalogue of entities to be dynamically loaded
+			by the maps.
 			
 A Brief (Not Really) Explanation on How the Config Files Work:
 
@@ -74,24 +74,38 @@ Now, to use the engine is rather tricky. With the currently provided tools, it i
 the player can walk around in. To do this, you will need the Gamma Editor, which is the map editing software I've made along
 side this project. The current compiled version can be found on my github page.
 
-After outputting the map you have made (follow the instructions on Gamma), it is now time to start implementing that file
-into the level/map system. To do so, rename map.mp to 1.mp. The file-system reads all map and level files as numbers in
-sequence. Place this into the /maps/ folder. As of now, the 1.lvl file in /levels/ will be adequate to run the engine as is.
-Ensure that the map you've made does not go out of the bounds of the tiles that are declared, as using tiles that don't exist
-currently results in a crash. Keep this in mind, if the engine loads everything and crashes on display, it is most likely a
-tile error.
+The entire engine works through both the rcg (config) files, and also through the various files located in the resource folders.
+For example, the world is loaded from levels.rcg, which specifies the range of levels to be loaded for the entire world. Each
+level specifies a range of maps to be loaded for that particular level. Then each map contains numerical tile ids, which are
+specified in tiles.rcg. Then the tiles are loaded, the first map is loaded, and the first level loaded. The whole engine follows
+this flowchart:
 
-This should do it. Remember, the player will collide with anything that isn't 0 (floor), so plan accordingly. (E.G. You will get
-a memory violation error if the player exits the play space. I need to work on that, preventing the player or anything else from
-going out of bounds. Oh well.)
+World <- Level <- Map <- Tiles & Entities
+
+So, to have a fully functional game, it is necessary to have all of the above (with the exclusion being audio. Technically audio is
+not required). To create maps, it is easier to use the mapping tools I have created (known as GammaEdit) rather than manually typing
+the tile ids. However, at the moment, it is necessary to code the entities, the tiles, the levels and world by hand. Eventually
+I will automate the process with a GUI to make things that much easier.
+
+Use the provided files as a template. I will eventually add to this readme (or append with a creator's manual) instructions in detail
+on how to create a completely new game using the engine.
+
+
+The latest addition to the engine is the multimap system, the entity system and the tile declaration systems. The multimap system
+allows a content creator to link multiple maps and stitch them into some form of larger map filled with maps. The entity system
+introduces non-world geometry and various props that can be included into a game. Similar to models or props in other engines, these
+entities (will or do) allow for animations, physics interactions, etc. Tile declarations allow tiles to be declared as function tiles
+in a separate file. Each tile listed in tiledec.rcg will perform that particular action either when called at map load or at collision,
+dependent on what action is specified.
 
 TODO:
-Audio system -> Very basically implemented.
-Map loading/parsing -> Work on moving towards a different method of loading. At the moment, I can only use ten total tiles.
+Audio system -> Work on positional audio
 Menus/User interface
+Customizable controls
+Better artificial intelligence
 Custom content detection using config files
 Cross-platform compatibility?
-Collision detection -> better collision detection. Currently, it is very bare bones
+Collision detection -> better collision detection. Currently, it is very bare bones.
 Artwork (oh boy)
 Gamepad/Joystick input? (maaaaaybeeee...)
 Refine entity system
