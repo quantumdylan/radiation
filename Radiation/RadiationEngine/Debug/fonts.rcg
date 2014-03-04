@@ -1,0 +1,8 @@
+[data]
+total = 1
+path = ui/fonts/
+
+[0]
+name = pirulen
+file = pirulen.ttf
+size = 12

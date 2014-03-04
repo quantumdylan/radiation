@@ -39,6 +39,7 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
+#include <allegro5/allegro_font.h>
 
 using namespace std;
 
@@ -64,6 +65,7 @@ ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.rcg"); //Load the tile loa
 ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.rcg"); //Load the main audio config file
 ALLEGRO_CONFIG *tiledec_cfg = al_load_config_file("tiledec.rcg"); //Load the tile decleration file
 ALLEGRO_CONFIG *entity_cfg = al_load_config_file("entities.rcg"); //Load the entity config file
+ALLEGRO_CONFIG *font_cfg = al_load_config_file("fonts.rcg"); //Load the font config file
 ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -91,10 +93,8 @@ struct tile{ //Basic tile declaration
 };
 
 struct tile_map{ //Basic map declaration
-	string raw_data; //Really, this fucking vector thing is being a bitch. I'm not down with dynamic
-	vector<int> formatted_data; //I'm hoping this works. I really need it to.
-	//So far this new vector is working fine, no problems with push_back()
-	//I am now going to attempt to completely change the way that input is processed by the engine
+	string raw_data; //Unprocessed data from map file
+	vector<int> formatted_data; //Formatted data for map display
 	int id; //Map ref-id. Used to determine which floor is being displayed
 	string title; //Title of the map being displayed
 	vector<tile_entity> entities; //A vector containing loaded entities from the map file
@@ -117,6 +117,12 @@ struct sound{ //Basic sound declaration
 	string type; //Category type from the config file
 	int id; //Keeping in line with the other declarations
 };
+
+struct text{
+	int font; //The specified font in the registry for this text
+	string st; //The actual text itself
+	cartes pos; //The position of the text on screen
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -127,9 +133,11 @@ vector<sound> audio_reg; //Basic audio registry for sounds
 //FUNCTION PROTOTYPING!
 bool col_det(float x, float y, float dx, float dy);
 level loadlvl(string filename);
+void loadfonts();
 cartes find_tile(int id);
 double round(double d);
 int get_player_type_id(int id);
+player* find_controlled_player();
 int get_tile(int pos);
 sound find_sound(string type, bool random);
 float rng(int cap);
@@ -138,6 +146,101 @@ tile get_raw_reg_tile(int pos);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MAIN HUD CLASS DEFINITION!
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+class hud{
+public:
+	hud(string hudfile);
+	void display();
+	void update();
+private:
+	vector<text> display_str;
+	vector<ALLEGRO_BITMAP*> display_img;
+	void loadhud(string hudfile);
+};
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//hud(string hudfile)
+//PURPOSE: Create a hud using the supplied HUD decleration file
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+hud::hud(string hudfile){
+	loadhud(hudfile); //Load the HUD using internal function
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadhud(string hudfile)
+//PURPOSE: 
+//TODO:
+//NOTES: Here is a comprehensive listing of the possible empty cases for variable display in the HUD
+//	%CURPLAYERHEALTH% - The current health of the controlled player
+//	%TOTPLAYERHEALTH% - The total health of the controlled player
+//	%PLAYERNAME% - The name of the controlled player
+//	%CURLEVELNAME% - The string name of the current level
+//	%CURMAPNAME% - The string name of the current map
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void hud::loadhud(string hudfile){
+	ALLEGRO_CONFIG* temp_hud = al_load_config_file(hudfile.c_str());
+
+	string name = al_get_config_value(temp_hud, "data", "name");
+	int totalstr = atoi(al_get_config_value(temp_hud, "data", "totalstr"));
+	int totalimg = atoi(al_get_config_value(temp_hud, "data", "totalimg"));
+
+	stringstream converter;
+	string temp_i;
+	string curstr;
+	string curimg;
+	text temptxt;
+	cartes tempcart;
+
+	cout << "Detected HUD file named " + name + "\n";
+	cout << "Processing...\n";
+
+	for(int i = 0; i < totalstr; i++){
+		curstr = "";
+		converter.str("");
+		converter.clear();
+		converter << i;
+		temp_i = converter.str();
+
+		curstr = "str" + temp_i;
+
+		temptxt.font = atoi(al_get_config_value(temp_hud, curstr.c_str(), "font"));
+		cout << "Font: " + temptxt.font;
+		cout << "\n";
+		temptxt.st = al_get_config_value(temp_hud, curstr.c_str(), "text");
+		cout << "Text: " + temptxt.st + "\n";
+		tempcart.x = atoi(al_get_config_value(temp_hud, curstr.c_str(), "x"));
+		tempcart.y = atoi(al_get_config_value(temp_hud, curstr.c_str(), "y"));
+
+		temptxt.pos = tempcart;
+
+		display_str.push_back(temptxt); //Add our current text to the stack of HUD messages
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//display()
+//PURPOSE: Display the HUD to the screen. Will be called by the global draw() function
+//TODO: Finish the parser
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void hud::display(){
+	string tempstr, finalstr;
+	for(int i = 0; i < display_str.size(); i++){
+		tempstr = display_str[i].st;
+		for(int j = 0; j < tempstr.length(); j++){
+			switch(tempstr[j]){
+			case '%' : //Put in the parsing code similar to the map parser.
+				break;
+			}
+		}
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN ENTITY CLASS DEFINITION!
@@ -293,10 +396,13 @@ void entity::decay_motion(){
 //You've done this, you bastard. I hope you're happy.
 class player{
 public:
-	player(int inx, int iny, tile player_tl, int dxc, int dyc, int type);
+	player(int inx, int iny, tile player_tl, int dxc, int dyc, int type, int h);
 	cartes get_pos();
 	int getx();
 	int gety();
+	int get_health();
+	string get_name();
+	void hurt(int fact);
 	int get_type();
 	void move(int dir); 
 	void setpos(float newx, float newy);
@@ -309,7 +415,8 @@ private:
 	tile player_tile;
 	float x, y, dx, dy;
 	int dxcap, dycap;
-	int player_type, sound_tick;
+	int player_type, sound_tick, health;
+	string name;
 
 	void cap_vel();
 	void act();
@@ -324,7 +431,7 @@ private:
 //PURPOSE: To create a new player entity, determine its starting stats and such
 //TODO: I don't know if anything else needs to be included
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
+player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type, int h){
 	//Initialize the values either to null or the given values
 	x = inx;
 	y = iny;
@@ -335,6 +442,41 @@ player::player(int inx, int iny, tile player_tl, int dxc, int dyc, int type){
 	dycap = dyc;
 	player_type = type;
 	sound_tick = 0;
+	health = h;
+	name = "TESTING";
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//hurt(int fact)
+//PURPOSE: Do damage to the player
+//TODO: Add resistances
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void player::hurt(int fact){
+	health -= fact;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_health()
+//PURPOSE: Get the current health of the player
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int player::get_health(){
+	return health;
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//get_name()
+//PURPOSE: Get the name of the player
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+string player::get_name(){
+	return name;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -622,6 +764,8 @@ vector<entity*> entity_reg; //Registry of entities (or rather their address)
 vector<entity*> entity_cat; //A catalogue of loaded entities, which can be called and loaded into the registry
 
 vector<tile> tile_reg; //Registry of tiles for displaying
+
+vector<ALLEGRO_FONT*> font_reg; //Registry of fonts for displaying
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -671,7 +815,7 @@ tile_map loadmap(string filename){
 	map_cfg = al_load_config_file(filename.c_str()); //Load the specified file
 	if(!map_cfg){
 		cout << "No map: " + filename + " found! Aborting...\n";
-		return loadmap("map.mp"); //Load our backup map file, though it will not work for now.
+		return tmpmap;
 	}
 	string map_data = al_get_config_value(map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED? Yeah.
 
@@ -693,6 +837,7 @@ tile_map loadmap(string filename){
 	tmpmap.directions[2] = s;
 	tmpmap.directions[3] = w;
 
+	//Starting entity detection/loading
 	for(int i = 0; i < total_ent; i++){
 		convert.clear();
 		convert.str("");
@@ -959,6 +1104,7 @@ void loadworld(){
 
 	loadtiles(); //Load all of the tiles following the skeletal loading above
 	loadentities(); //Load all of the entities into the catalogue
+	loadfonts(); //Load all of the fonts to be used in the engine
 
 	string display_t;
 
@@ -1055,7 +1201,7 @@ int get_player_type_id(int id){
 //TODO: Code, etc.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool create_nonplayer_entity(int x, int y, tile tl){
-	player* temp = new player(x, y, tl, 3, 3, 1); //We set type to one, as this is npcharacter
+	player* temp = new player(x, y, tl, 3, 3, 1, 15); //We set type to one, as this is npcharacter
 	if(temp){
 		player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
@@ -1089,7 +1235,7 @@ bool create_entity(int x, int y, string type, string name, bool col, bool move, 
 //TODO: Code, etc.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool create_player_entity(int x, int y, tile tl){
-	player* temp = new player(x, y, tl, 5, 5, 0); //We set type to zero, as this is player controlled
+	player* temp = new player(x, y, tl, 5, 5, 0, 15); //We set type to zero, as this is player controlled
 	if(temp){
 		player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
@@ -1130,6 +1276,54 @@ void set_map(tile_map map){
 	for(int i = 0; i < map.entities.size(); i++){
 		entity_reg.push_back(find_entity(map.entities[i].type, map.entities[i].name)); //This will pull the entity data out of the map and find it in the catalogue.
 	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//loadfonts()
+//PURPOSE: To load all fonts into the font registry for usage in displaying text
+//TODO: Finished
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void loadfonts(){
+	int total = atoi(al_get_config_value(font_cfg, "data", "total"));
+	string path = al_get_config_value(font_cfg, "data", "path");
+	cout << "\nTotal Fonts: " + total;
+	string finalpath;
+	string file;
+	stringstream converter;
+	string cur_id;
+	int size;
+	string name;
+
+	//Starting loop
+	for(int j = 0; j < total; j++){
+		file = "";
+		cur_id = "";
+		converter.clear();
+		converter.str("");
+		converter << j;
+		cur_id = converter.str();
+
+		cout << "\nLoading font " + cur_id + "\n";
+
+		file = al_get_config_value(font_cfg, cur_id.c_str(), "file");
+		name = al_get_config_value(font_cfg, cur_id.c_str(), "name");
+
+		size = atoi(al_get_config_value(font_cfg, cur_id.c_str(), "size"));
+
+		finalpath = path + file;
+
+		cout << "Name: " + name + "\n";
+		cout << "Path: " + finalpath + "\n";
+		cout << "Size: " + size;
+		cout << "\n";
+
+		font_reg.push_back(al_load_font(finalpath.c_str(), size, NULL)); //Might add support for flags later. They aren't terribly important
+
+		cout << "Font loaded succesfully.\n";
+	}	
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1236,26 +1430,6 @@ void do_tile_actions(){
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//spawn_players()
-//PURPOSE: To spawn specified NPCs at predetermined spawn points
-//TODO: Work on code
-//WARNING! This code has been marked as obsolete, and may be deleted within the next few updates
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void spawn_players(){
-	for(int y = 0; y < tile_h; y++){
-		for(int x = 0; x < tile_w; x++){
-			switch(get_tile((y*tile_w)+x)){
-			case 18 : create_player_entity(x, y, tile_reg[5]); break; //Spawn a player
-			case 19 : create_nonplayer_entity(x, y, tile_reg[6]); break; //Spawn a NPC
-			default : ; //Do nothing
-			}
-		}
-	}
-}
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -1394,6 +1568,18 @@ void draw_entities(){
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//draw_text()
+//PURPOSE: Render all text currently active for this stage
+//TODO: Finish coding this section
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void draw_text(){
+
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //draw()
 //PURPOSE: Automates all the draw functions with one function call
 //TODO: Case by case rendering? (Possiblity to exclude certain aspects?)
@@ -1402,6 +1588,7 @@ void draw(){
 	update_players(); //Update the current states of the player characters present in player_reg
 	draw_map(); //Draw the base map geometry
 	draw_entities(); //Draw the entities on top of the base geometry
+	draw_text(); //Draw the HUD text and everything else
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1511,6 +1698,8 @@ double round(double d){
 int init_engine(){
 	srand(time(NULL));
 
+	al_init_font_addon();
+
 	if(!al_init()) {
       fprintf(stderr, "failed to initialize allegro!\n");
       return -1;
@@ -1619,6 +1808,7 @@ void clean_up(){
    al_uninstall_audio();
    al_uninstall_keyboard();
    al_uninstall_system();
+   al_shutdown_font_addon();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
