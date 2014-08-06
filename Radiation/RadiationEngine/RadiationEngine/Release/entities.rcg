@@ -1,0 +1,12 @@
+[data]
+total = 1
+
+[1]
+type = static_prop
+col = f
+tile = 12
+move = f
+hurtfact = 0
+name = chair1
+dxc = 2
+dyc = 2

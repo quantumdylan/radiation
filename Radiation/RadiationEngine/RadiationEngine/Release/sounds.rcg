@@ -1,0 +1,21 @@
+#Main sound declaration config file
+[data]
+total = 1
+samples = 3
+1 = walking
+
+#There are separate sections for each type of sounds
+[walking] #These will play when the player/npc moves in the world
+path = sounds/walking/
+
+id = 0
+
+end = 3
+
+0 = walk01.wav
+
+1 = walk02.wav
+
+2 = walk03.wav
+
+[end]

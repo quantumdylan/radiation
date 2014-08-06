@@ -1,0 +1,4 @@
+[data]
+start = 0 #The starting point of the filenames - 1
+w = 1 #The amount of maps horizontally
+h = 2 #The amount of maps vertically

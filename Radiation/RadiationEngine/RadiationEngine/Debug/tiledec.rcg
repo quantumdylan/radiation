@@ -1,0 +1,21 @@
+[data]
+registry = 18,19,20,21,22,23
+total = 6
+
+[18]
+action = spawn_player
+
+[19]
+action = spawn_enemy
+
+[20]
+action = move_north
+
+[21]
+action = move_east
+
+[22]
+action = move_south
+
+[23]
+action = move_west

@@ -2,7 +2,7 @@
 //New this version:
 //I've completely re-written a few aspects of the code, though no visual changes since March.
 //Instead of there being any globals (which holy hell, this code was completely filled with them)
-//there is now a single game class, which will contain the basic information used by the engine.
+//there is now a single game class, which will contain the basic information used by the engine->
 //Though it's a bit clunky, it seems to be a step forward towards me splitting this one code file
 //into individual code files for each grouping of functions/classes
 
@@ -18,51 +18,11 @@
 //  -Pickups (health, potions, etc...)
 //  -Blah
 
-#include <stdio.h>
-#include <string>
-#include <sstream>
-#include <vector>
-#include <math.h>
-#include <iostream>
-#include <allegro5/allegro.h>
-#include <allegro5/allegro_image.h>
-#include <allegro5/allegro_audio.h>
-#include <allegro5/allegro_acodec.h>
-#include <allegro5/allegro_font.h>
+#include "engine.h"
 
 using namespace std;
+
 /*
-int tile_w, tile_h, level_h, level_w;
-
-int tile_px = 32;
-
-const int PLAYER_SPAWN = 18;
-const int NPC_SPAWN = 19;
-
-float FPS = 60;
-int SCREEN_W = 640;
-int SCREEN_H = 480;
-enum MYKEYS {KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT};
-
-ALLEGRO_DISPLAY *display = NULL; //Basic display pointer
-ALLEGRO_EVENT_QUEUE *evt_q = NULL; //Basic event queue
-ALLEGRO_TIMER *timer = NULL; //Basic timer pointer
-ALLEGRO_CONFIG *config_ld = al_load_config_file("config.ini"); //Main config for engine
-ALLEGRO_CONFIG *level_cfg = al_load_config_file("levels.rcg"); //Loads first level config file
-ALLEGRO_CONFIG *map_cfg = al_load_config_file("map.rcg"); //Loads first map file
-ALLEGRO_CONFIG *tile_cfg = al_load_config_file("tiles.rcg"); //Load the tile loading configuration file
-ALLEGRO_CONFIG *sound_cfg = al_load_config_file("sounds.rcg"); //Load the main audio config file
-ALLEGRO_CONFIG *tiledec_cfg = al_load_config_file("tiledec.rcg"); //Load the tile decleration file
-ALLEGRO_CONFIG *entity_cfg = al_load_config_file("entities.rcg"); //Load the entity config file
-ALLEGRO_CONFIG *font_cfg = al_load_config_file("fonts.rcg"); //Load the font config file
-ALLEGRO_CONFIG *temp_lvls; //Temp level config file holder
-*/
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN STRUCTURE DECLARATION!
 struct cartes{ //Helper to return two values simultaneously
@@ -114,7 +74,7 @@ struct text{
 	cartes pos; //The position of the text on screen
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+*/
 
 vector<sound> audio_reg; //Basic audio registry for sounds
 
@@ -126,18 +86,19 @@ class entity;
 class player;
 class hud;
 
-bool col_det(float x, float y, float dx, float dy, game engine);
-cartes find_tile(int id, game engine);
+bool col_det(float x, float y, float dx, float dy, game* engine);
+cartes find_tile(int id, game* engine);
 double round(double d);
-int get_player_type_id(int id, game engine);
+int get_player_type_id(int id, game* engine);
 //player* find_controlled_player();
-int get_tile(int pos, game engine);
+int get_tile(int pos, game* engine);
 sound find_sound(string type, bool random);
 float rng(int cap);
-tile get_raw_tile(int pos, game engine);
-tile get_raw_reg_tile(int pos, game engine);
+tile get_raw_tile(int pos, game* engine);
+tile get_raw_reg_tile(int pos, game* engine);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+/*
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MAIN GAME CLASS DEFINITION!
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +145,7 @@ public:
 private:
 
 };
+*/
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,7 +247,7 @@ void hud::display(){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 class entity{
 public:
-	entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname, game engine);
+	entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname, game* engine);
 	ALLEGRO_BITMAP* get_entity_tile();
 	cartes get_pos();
 	int getx();
@@ -293,7 +255,7 @@ public:
 	string getname();
 	string gettype();
 	void move(int dir);
-	void update_state(game engine);
+	void update_state(game* engine);
 protected:
 	tile entity_tile;
 	string enttype, name;
@@ -308,7 +270,7 @@ protected:
 //PURPOSE: Constructs a new entity (given the supplied information)
 //TODO: Keep up-to-date with the rest of the entity systems
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-entity::entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname, game engine){
+entity::entity(int inx, int iny, int indx, int indy, int dxcap, int dycap, string type, bool col, bool move, float hurt, float face, int tileid, string inname, game* engine){
 	x = inx;
 	y = iny;
 	dxc = dxcap;
@@ -380,7 +342,7 @@ ALLEGRO_BITMAP* entity::get_entity_tile(){
 //PURPOSE: Updates the state of an entity (position and otherwise)
 //TODO: Keep up-to-date
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void entity::update_state(game engine){
+void entity::update_state(game* engine){
 	decay_motion();
 
 	if(!col_det(x, y, dx, dy, engine)){
@@ -442,12 +404,12 @@ public:
 	string get_name();
 	void hurt(int fact);
 	int get_type();
-	void move(int dir, game engine); 
+	void move(int dir, game* engine); 
 	void setpos(float newx, float newy);
 	tile get_player_tile();
 	ALLEGRO_BITMAP* get_player_image();
 	void change_vel(int mag, int id);
-	void think(player* play, game engine); //These two functions will be used for autonomous systems later on. Think npcs.
+	void think(player* play, game* engine); //These two functions will be used for autonomous systems later on. Think npcs.
 	void decay();
 private:
 	tile player_tile;
@@ -458,7 +420,7 @@ private:
 
 	void cap_vel();
 	void act();
-	void find_spawn(game engine);
+	void find_spawn(game* engine);
 	void walk();
 };
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -537,7 +499,7 @@ void player::setpos(float newx, float newy){
 //TODO: Nothing, that I can tell. Probably wrong, though
 //WARNING! This code may now be deprecated. Pending removal.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void player::find_spawn(game engine){
+void player::find_spawn(game* engine){
 	cartes temp;
 	switch(player_type){
 	case 0 : temp = find_tile(18, engine); break;
@@ -569,7 +531,7 @@ int player::get_type(){
 //player play. It will dictate the "monster's" actions towards the player.
 //TODO: Actually code decent pathing/decision making
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void player::think(player* play, game engine){
+void player::think(player* play, game* engine){
 	//This is where we can put code to automate the npc movement
 	//For now, I'm just going to have them do simple pathing
 	//Eventually, I hope to integrate the A* pathing algortihm
@@ -728,7 +690,7 @@ void player::change_vel(int mag, int id){
 //PURPOSE: Derived from previous moveguy engine, core of the player's movement
 //TODO: Finished (for now)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void player::move(int dir, game engine){
+void player::move(int dir, game* engine){
 	change_vel(2, dir);
 	cap_vel(); //Make sure that we have not exceeded the maximum or minimum velocities respectively.
 
@@ -789,8 +751,8 @@ void player::decay(){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MORE FUNCTION DECLERATIONS
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-level loadlvl(string filename, game engine);
-void loadfonts(game engine);
+level loadlvl(string filename, game* engine);
+void loadfonts(game* engine);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //processmap(tile_map tmp)
@@ -832,16 +794,16 @@ tile_map processmap(tile_map tmp){
 //PURPOSE: To load a map config file from the file-system and return the map
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-tile_map loadmap(string filename, game engine){
+tile_map loadmap(string filename, game* engine){
 	tile_map tmpmap; //The temporary map for processing
-	engine.map_cfg = al_load_config_file(filename.c_str()); //Load the specified file
-	if(!engine.map_cfg){
+	engine->map_cfg = al_load_config_file(filename.c_str()); //Load the specified file
+	if(!engine->map_cfg){
 		cout << "No map: " + filename + " found! Aborting...\n";
 		return tmpmap;
 	}
-	string map_data = al_get_config_value(engine.map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED? Yeah.
+	string map_data = al_get_config_value(engine->map_cfg, "map_data", "m"); //Not all of the map is being captured. FIXED? Yeah.
 
-	int total_ent = atoi(al_get_config_value(engine.map_cfg, "data", "total_e"));
+	int total_ent = atoi(al_get_config_value(engine->map_cfg, "data", "total_e"));
 
 	string temp, name, type;
 	int n, e, s, w;
@@ -849,10 +811,10 @@ tile_map loadmap(string filename, game engine){
 	cartes temp_pos;
 	tile_entity temp_ent;
 
-	n = atoi(al_get_config_value(engine.map_cfg, "map_data", "n"));
-	e = atoi(al_get_config_value(engine.map_cfg, "map_data", "e"));
-	s = atoi(al_get_config_value(engine.map_cfg, "map_data", "s"));
-	w = atoi(al_get_config_value(engine.map_cfg, "map_data", "w"));
+	n = atoi(al_get_config_value(engine->map_cfg, "map_data", "n"));
+	e = atoi(al_get_config_value(engine->map_cfg, "map_data", "e"));
+	s = atoi(al_get_config_value(engine->map_cfg, "map_data", "s"));
+	w = atoi(al_get_config_value(engine->map_cfg, "map_data", "w"));
 
 	tmpmap.directions[0] = n;
 	tmpmap.directions[1] = e;
@@ -866,11 +828,11 @@ tile_map loadmap(string filename, game engine){
 		convert << i;
 		temp = convert.str();
 
-		temp_pos.x = atoi(al_get_config_value(engine.map_cfg, temp.c_str(), "x"));
-		temp_pos.y = atoi(al_get_config_value(engine.map_cfg, temp.c_str(), "y"));
+		temp_pos.x = atoi(al_get_config_value(engine->map_cfg, temp.c_str(), "x"));
+		temp_pos.y = atoi(al_get_config_value(engine->map_cfg, temp.c_str(), "y"));
 
-		name = al_get_config_value(engine.map_cfg, temp.c_str(), "name");
-		type = al_get_config_value(engine.map_cfg, temp.c_str(), "type");
+		name = al_get_config_value(engine->map_cfg, temp.c_str(), "name");
+		type = al_get_config_value(engine->map_cfg, temp.c_str(), "type");
 
 		temp_ent.name = name;
 		temp_ent.type = type;
@@ -901,8 +863,8 @@ tile_map loadmap(string filename, game engine){
 //	dxc (cap of dx)
 //	dyc (cap of dy)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void loadentities(game engine){
-	int total = atoi(al_get_config_value(engine.entity_cfg, "data", "total")); //Grab our meta-data data section again
+void loadentities(game* engine){
+	int total = atoi(al_get_config_value(engine->entity_cfg, "data", "total")); //Grab our meta-data data section again
 	int tile, temp_i;
 	string pos, name, type, temp;
 	bool collide, move;
@@ -918,29 +880,29 @@ void loadentities(game engine){
 		convert << temp_i;
 		pos = convert.str();
 
-		name = al_get_config_value(engine.entity_cfg, pos.c_str(), "name");
-		type = al_get_config_value(engine.entity_cfg, pos.c_str(), "type");
-		tile = atoi(al_get_config_value(engine.entity_cfg, pos.c_str(), "tile"));
-		temp = al_get_config_value(engine.entity_cfg, pos.c_str(), "col");
+		name = al_get_config_value(engine->entity_cfg, pos.c_str(), "name");
+		type = al_get_config_value(engine->entity_cfg, pos.c_str(), "type");
+		tile = atoi(al_get_config_value(engine->entity_cfg, pos.c_str(), "tile"));
+		temp = al_get_config_value(engine->entity_cfg, pos.c_str(), "col");
 		
 		if(temp == "t")
 			collide = true;
 		if(temp == "f")
 			collide = false;
 
-		temp = al_get_config_value(engine.entity_cfg, pos.c_str(), "move");
+		temp = al_get_config_value(engine->entity_cfg, pos.c_str(), "move");
 
 		if(temp == "t")
 			move = true;
 		if(temp == "f")
 			move = false;
 
-		hurt = atoi(al_get_config_value(engine.entity_cfg, pos.c_str(), "hurtfact"));
-		dxc = atoi(al_get_config_value(engine.entity_cfg, pos.c_str(), "dxc"));
-		dyc = atoi(al_get_config_value(engine.entity_cfg, pos.c_str(), "dyc"));
+		hurt = atoi(al_get_config_value(engine->entity_cfg, pos.c_str(), "hurtfact"));
+		dxc = atoi(al_get_config_value(engine->entity_cfg, pos.c_str(), "dxc"));
+		dyc = atoi(al_get_config_value(engine->entity_cfg, pos.c_str(), "dyc"));
 
 		temp_entity = new entity(0, 0, 0, 0, dxc, dyc, type, collide, move, hurt, 0, tile, name, engine);
-		engine.entity_cat.push_back(temp_entity); //Add our temp entity to the stack
+		engine->entity_cat.push_back(temp_entity); //Add our temp entity to the stack
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -952,15 +914,15 @@ void loadentities(game engine){
 //PURPOSE: Loads PNG tiles from file-system as per the already loaded tile config file (now a vector)
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void loadtiles(game engine){
+void loadtiles(game* engine){
 	//Starting the automated file shit here
 	int start, end;
 	string data;
 	
-	data = al_get_config_value(engine.tile_cfg, "data", "start");
+	data = al_get_config_value(engine->tile_cfg, "data", "start");
 	start = atoi(data.c_str());
 
-	data = al_get_config_value(engine.tile_cfg, "data", "end");
+	data = al_get_config_value(engine->tile_cfg, "data", "end");
 	end = atoi(data.c_str());
 	cout << "\n\nTotal textures: " + (end+1);
 	cout << "\n";
@@ -976,8 +938,8 @@ void loadtiles(game engine){
 	string temp;
 	string temp_int;
 	tile temp_tile;
-	check_end = atoi(al_get_config_value(engine.tiledec_cfg, "data", "total"));
-	registry = al_get_config_value(engine.tiledec_cfg, "data", "registry");
+	check_end = atoi(al_get_config_value(engine->tiledec_cfg, "data", "total"));
+	registry = al_get_config_value(engine->tiledec_cfg, "data", "registry");
 	//This bit of code will detect which tiles are to be flagged as utility tiles
 	for(int i = 0; i < registry.size(); i++){
 		convert.clear();
@@ -1004,9 +966,9 @@ void loadtiles(game engine){
 		action = "";
 		id = NULL; //Nullify all variables, just in case. This is loading, we can take a while with this.
 
-		filename = al_get_config_value(engine.tile_cfg, curpos.c_str(), "file");
-		id = atoi(al_get_config_value(engine.tile_cfg, curpos.c_str(), "id"));
-		temp = al_get_config_value(engine.tile_cfg, curpos.c_str(), "col");
+		filename = al_get_config_value(engine->tile_cfg, curpos.c_str(), "file");
+		id = atoi(al_get_config_value(engine->tile_cfg, curpos.c_str(), "id"));
+		temp = al_get_config_value(engine->tile_cfg, curpos.c_str(), "col");
 		
 
 		if(temp == "t")
@@ -1020,17 +982,17 @@ void loadtiles(game engine){
 
 		for(int j = 0; j < check_id.size(); j++){
 			if(atoi(curpos.c_str()) == check_id[j]){
-				temp_tile.action = al_get_config_value(engine.tiledec_cfg, curpos.c_str(), "action");
+				temp_tile.action = al_get_config_value(engine->tiledec_cfg, curpos.c_str(), "action");
 			}
 		}
 		if(temp_tile.action == "")
 			temp_tile.action = "nothing";
 
 
-		engine.tile_reg.push_back(temp_tile); //Push back the temporary tile data to our registry
+		engine->tile_reg.push_back(temp_tile); //Push back the temporary tile data to our registry
 
 		fprintf(stdout, "\n");
-		fprintf(stdout, al_get_config_value(engine.tile_cfg, curpos.c_str(), "id"));
+		fprintf(stdout, al_get_config_value(engine->tile_cfg, curpos.c_str(), "id"));
 		fprintf(stdout, "\n");
 		fprintf(stdout, filename.c_str());
 		cout << "\n" + temp + "\nAction:";
@@ -1045,7 +1007,7 @@ void loadtiles(game engine){
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //rng(int cap)
-//PURPOSE: Main global random number generator for engine. Returns floats.
+//PURPOSE: Main global random number generator for engine-> Returns floats.
 //TODO: Refine generation so as to allow quick calling (upwards of 40 hertz) without repetition
 //(or serious repetition). Also, making it truly random is going to be necesarry.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1120,8 +1082,8 @@ sound find_sound(string type, bool random){
 //PURPOSE: To load the main world information from the main world config file
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void loadworld(game engine){
-	if(!engine.level_cfg)
+void loadworld(game* engine){
+	if(!engine->level_cfg)
 		fprintf(stderr, "Level cfg not found!\n");
 
 	loadtiles(engine); //Load all of the tiles following the skeletal loading above
@@ -1130,19 +1092,19 @@ void loadworld(game engine){
 
 	string display_t;
 
-	engine.tile_w = atoi(al_get_config_value(engine.level_cfg, "global", "w"));
-	display_t = engine.tile_w;
-	engine.tile_h = atoi(al_get_config_value(engine.level_cfg, "global", "h"));
-	display_t = engine.tile_h;
+	engine->tile_w = atoi(al_get_config_value(engine->level_cfg, "global", "w"));
+	display_t = engine->tile_w;
+	engine->tile_h = atoi(al_get_config_value(engine->level_cfg, "global", "h"));
+	display_t = engine->tile_h;
 	
-	engine.level_w = atoi(al_get_config_value(engine.level_cfg, "levels", "lw"));
-	engine.level_h = atoi(al_get_config_value(engine.level_cfg, "levels", "lh"));
+	engine->level_w = atoi(al_get_config_value(engine->level_cfg, "levels", "lw"));
+	engine->level_h = atoi(al_get_config_value(engine->level_cfg, "levels", "lh"));
 
 	world tempwrld;
 	string file;
 	stringstream convert;
 
-	for(int i = 0; i < (engine.level_w*engine.level_h); i++){
+	for(int i = 0; i < (engine->level_w*engine->level_h); i++){
 		convert.clear();
 		convert.str("");
 		convert << i + 1; //Make sure we have no zeroes
@@ -1152,7 +1114,7 @@ void loadworld(game engine){
 		tempwrld.levels.push_back(loadlvl(file, engine));
 	}
 
-	engine.globalWorld = tempwrld; //Set the global world to this scope's world
+	engine->globalWorld = tempwrld; //Set the global world to this scope's world
 	
     
 }
@@ -1165,10 +1127,10 @@ void loadworld(game engine){
 //PURPOSE: Return the entity with the provided type and name
 //TODO: Streamline the entity storage process?
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-entity* find_entity(string type, string name, game engine){
-	for(int i = 0; i < engine.entity_cat.size(); i++){
-		if(engine.entity_cat[i]->getname() == name && engine.entity_cat[i]->gettype() == type){
-			return engine.entity_cat[i]; //We've found our entity. Return it.
+entity* find_entity(string type, string name, game* engine){
+	for(int i = 0; i < engine->entity_cat.size(); i++){
+		if(engine->entity_cat[i]->getname() == name && engine->entity_cat[i]->gettype() == type){
+			return engine->entity_cat[i]; //We've found our entity. Return it.
 		}
 	}
 }
@@ -1180,8 +1142,8 @@ entity* find_entity(string type, string name, game engine){
 //PURPOSE: Return the entity with the specified id
 //TODO: Actually code this
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-player* get_player_entity(int id, game engine){
-	return engine.player_reg.at(id); //Return the player at the specified id
+player* get_player_entity(int id, game* engine){
+	return engine->player_reg.at(id); //Return the player at the specified id
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1192,10 +1154,10 @@ player* get_player_entity(int id, game engine){
 //PURPOSE: Helper function for think(). Automagically finds the controlled player in the entity stack
 //TODO: Optimize code, these for loops can't be good for performance
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-player* find_controlled_player(game engine){
-	for(int i = 0; i < engine.player_reg.size(); i++){
+player* find_controlled_player(game* engine){
+	for(int i = 0; i < engine->player_reg.size(); i++){
 		switch(get_player_type_id(i, engine)){
-		case 0 : return engine.player_reg[i]; break;
+		case 0 : return engine->player_reg[i]; break;
 		case 1 : break;
 		default : cout << "No player characters found! Can this even happen?\n";
 		}
@@ -1210,8 +1172,8 @@ player* find_controlled_player(game engine){
 //PURPOSE: Return the type id for the player in the registry at id
 //TODO: Work out a quick and efficient means of getting the data
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int get_player_type_id(int id, game engine){
-	return engine.player_reg[id]->get_type();
+int get_player_type_id(int id, game* engine){
+	return engine->player_reg[id]->get_type();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1222,10 +1184,10 @@ int get_player_type_id(int id, game engine){
 //PURPOSE: Called dynamically to create a non-player entity
 //TODO: Code, etc.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool create_nonplayer_entity(int x, int y, tile tl, game engine){
+bool create_nonplayer_entity(int x, int y, tile tl, game* engine){
 	player* temp = new player(x, y, tl, 3, 3, 1, 15); //We set type to one, as this is npcharacter
 	if(temp){
-		engine.player_reg.push_back(temp);
+		engine->player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
 	}
 	return false; //If everything else completely fails, we will return false
@@ -1241,10 +1203,10 @@ bool create_nonplayer_entity(int x, int y, tile tl, game engine){
 //later.
 //int inx, int iny, int dxcap, int dycap, string type, bool col, bool move, float hurt, int id, string name
 //TODO: Keep shit up to date
-bool create_entity(int x, int y, string type, string name, bool col, bool move, float hurt, int dycap, int dxcap, int id, game engine){
+bool create_entity(int x, int y, string type, string name, bool col, bool move, float hurt, int dycap, int dxcap, int id, game* engine){
 	entity* temp;
 	temp = new entity(x, y, 0, 0, dxcap, dycap, type, col, move, hurt, 0, id, name, engine);
-	engine.entity_reg.push_back(temp);
+	engine->entity_reg.push_back(temp);
 	return false;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1256,10 +1218,10 @@ bool create_entity(int x, int y, string type, string name, bool col, bool move, 
 //PURPOSE: Called dynamically to create a player entity
 //TODO: Code, etc.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool create_player_entity(int x, int y, tile tl, game engine){
+bool create_player_entity(int x, int y, tile tl, game* engine){
 	player* temp = new player(x, y, tl, 5, 5, 0, 15); //We set type to zero, as this is player controlled
 	if(temp){
-		engine.player_reg.push_back(temp);
+		engine->player_reg.push_back(temp);
 		return true; //If everything worked, we can add it to the stack and return true
 	}
 	return false; //If everything else completely fails, we will return false
@@ -1273,8 +1235,8 @@ bool create_player_entity(int x, int y, tile tl, game engine){
 //PURPOSE: Loads the level provided to the global, current level
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void set_lvl(level lvl, game engine){
-	engine.curlvl = lvl; //Just something simple to clear some clutter
+void set_lvl(level lvl, game* engine){
+	engine->curlvl = lvl; //Just something simple to clear some clutter
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1285,18 +1247,18 @@ void set_lvl(level lvl, game engine){
 //PURPOSE: Sets the provided map as the global current map for the engine
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void set_map(tile_map map, game engine){
-	engine.curmap = map; //Also clearing clutter
-	if(engine.entity_reg.size() == NULL){
+void set_map(tile_map map, game* engine){
+	engine->curmap = map; //Also clearing clutter
+	if(engine->entity_reg.size() == NULL){
 		//Do nothing
 	}
-	if(engine.entity_reg.size() != NULL){
-		for(int i = 0; i < engine.entity_reg.size(); i++){
-			engine.entity_reg.pop_back(); //Remove all the entities currently in the registry...
+	if(engine->entity_reg.size() != NULL){
+		for(int i = 0; i < engine->entity_reg.size(); i++){
+			engine->entity_reg.pop_back(); //Remove all the entities currently in the registry...
 		}
 	}
 	for(int i = 0; i < map.entities.size(); i++){
-		engine.entity_reg.push_back(find_entity(map.entities[i].type, map.entities[i].name, engine)); //This will pull the entity data out of the map and find it in the catalogue.
+		engine->entity_reg.push_back(find_entity(map.entities[i].type, map.entities[i].name, engine)); //This will pull the entity data out of the map and find it in the catalogue.
 	}
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1308,9 +1270,9 @@ void set_map(tile_map map, game engine){
 //PURPOSE: To load all fonts into the font registry for usage in displaying text
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void loadfonts(game engine){
-	int total = atoi(al_get_config_value(engine.font_cfg, "data", "total"));
-	string path = al_get_config_value(engine.font_cfg, "data", "path");
+void loadfonts(game* engine){
+	int total = atoi(al_get_config_value(engine->font_cfg, "data", "total"));
+	string path = al_get_config_value(engine->font_cfg, "data", "path");
 	cout << "\nTotal Fonts: " + total;
 	string finalpath;
 	string file;
@@ -1330,10 +1292,10 @@ void loadfonts(game engine){
 
 		cout << "\nLoading font " + cur_id + "\n";
 
-		file = al_get_config_value(engine.font_cfg, cur_id.c_str(), "file");
-		name = al_get_config_value(engine.font_cfg, cur_id.c_str(), "name");
+		file = al_get_config_value(engine->font_cfg, cur_id.c_str(), "file");
+		name = al_get_config_value(engine->font_cfg, cur_id.c_str(), "name");
 
-		size = atoi(al_get_config_value(engine.font_cfg, cur_id.c_str(), "size"));
+		size = atoi(al_get_config_value(engine->font_cfg, cur_id.c_str(), "size"));
 
 		finalpath = path + file;
 
@@ -1342,7 +1304,7 @@ void loadfonts(game engine){
 		cout << "Size: " + size;
 		cout << "\n";
 
-		engine.font_reg.push_back(al_load_font(finalpath.c_str(), size, NULL)); //Might add support for flags later. They aren't terribly important
+		engine->font_reg.push_back(al_load_font(finalpath.c_str(), size, NULL)); //Might add support for flags later. They aren't terribly important
 
 		cout << "Font loaded succesfully.\n";
 	}	
@@ -1356,7 +1318,7 @@ void loadfonts(game engine){
 //PURPOSE: To load a level from the provided file path
 //TODO: Possibly optimization. I'm sure this is too messy
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-level loadlvl(string filename, game engine){
+level loadlvl(string filename, game* engine){
 	ALLEGRO_CONFIG *temp_level_cfg = al_load_config_file(filename.c_str());
 	if(!temp_level_cfg)
 		cout << "Error loading level!\n";
@@ -1376,7 +1338,7 @@ level loadlvl(string filename, game engine){
 		curpos = convert.str();
 		curfile = "maps/" + curpos + ".mp"; //Get the map filename
 
-		engine.temp_lvls = al_load_config_file(curfile.c_str());
+		engine->temp_lvls = al_load_config_file(curfile.c_str());
 		
 		templvl.maps.push_back(loadmap(curfile.c_str(), engine));
 	}
@@ -1392,7 +1354,7 @@ level loadlvl(string filename, game engine){
 //PURPOSE: Move all the player entities in the registry as per the direction
 //TODO: Improve performance by putting the player entities further up in the stack
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void move_player(int dir, game engine){
+void move_player(int dir, game* engine){
 	find_controlled_player(engine)->move(dir, engine);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1405,27 +1367,27 @@ void move_player(int dir, game engine){
 //is happening). It will seek out the corresponding portal in the next map (N to S, E to W, etc.)
 //TODO: Work out how to actually move fluidly between the two (maybe an animation?)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void move_map(int dir, game engine){
+void move_map(int dir, game* engine){
 	switch(dir){
 	case 0 : 
-		if(engine.curmap.directions[0] != NULL){
-			set_map(engine.curlvl.maps[engine.curmap.directions[0] - 1], engine); //This should grab the next map from our level set. Should.
-			find_controlled_player(engine)->setpos(find_tile(22, engine).x, find_tile(22, engine).y - engine.tile_px);
+		if(engine->curmap.directions[0] != NULL){
+			set_map(engine->curlvl.maps[engine->curmap.directions[0] - 1], engine); //This should grab the next map from our level set. Should.
+			find_controlled_player(engine)->setpos(find_tile(22, engine).x, find_tile(22, engine).y - engine->tile_px);
 		} break;
 	case 1 :
-		if(engine.curmap.directions[1] != NULL){
-			set_map(engine.curlvl.maps[engine.curmap.directions[1] - 1], engine);
-			find_controlled_player(engine)->setpos(find_tile(23, engine).x + engine.tile_px, find_tile(23, engine).y);
+		if(engine->curmap.directions[1] != NULL){
+			set_map(engine->curlvl.maps[engine->curmap.directions[1] - 1], engine);
+			find_controlled_player(engine)->setpos(find_tile(23, engine).x + engine->tile_px, find_tile(23, engine).y);
 		} break;
 	case 2 :
-		if(engine.curmap.directions[2] != NULL){
-			set_map(engine.curlvl.maps[engine.curmap.directions[2] - 1], engine);
-			find_controlled_player(engine)->setpos(find_tile(20, engine).x, find_tile(20, engine).y + engine.tile_px);
+		if(engine->curmap.directions[2] != NULL){
+			set_map(engine->curlvl.maps[engine->curmap.directions[2] - 1], engine);
+			find_controlled_player(engine)->setpos(find_tile(20, engine).x, find_tile(20, engine).y + engine->tile_px);
 		} break;
 	case 3 :
-		if(engine.curmap.directions[3] != NULL){
-			set_map(engine.curlvl.maps[engine.curmap.directions[3] - 1], engine);
-			find_controlled_player(engine)->setpos(find_tile(21, engine).x - engine.tile_px, find_tile(21, engine).y);
+		if(engine->curmap.directions[3] != NULL){
+			set_map(engine->curlvl.maps[engine->curmap.directions[3] - 1], engine);
+			find_controlled_player(engine)->setpos(find_tile(21, engine).x - engine->tile_px, find_tile(21, engine).y);
 		} break;
 	default : cout << "There is no map referenced in current map.\n";
 	}
@@ -1440,13 +1402,13 @@ void move_map(int dir, game engine){
 //These actions, of course, are only the startup actions. No more than that.
 //TODO:
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void do_tile_actions(game engine){
-	for(int y = 0; y < engine.tile_h; y++){
-		for(int x = 0; x < engine.tile_w; x++){
-			if(get_raw_tile((y*engine.tile_w)+x, engine).action == "spawn_player") //Spawn the player
-				create_player_entity(x, y, engine.tile_reg[5], engine);
-			if(get_raw_tile((y*engine.tile_w)+x, engine).action == "spawn_enemy") //SPawn the enemy
-				create_nonplayer_entity(x, y, engine.tile_reg[6], engine);
+void do_tile_actions(game* engine){
+	for(int y = 0; y < engine->tile_h; y++){
+		for(int x = 0; x < engine->tile_w; x++){
+			if(get_raw_tile((y*engine->tile_w)+x, engine).action == "spawn_player") //Spawn the player
+				create_player_entity(x, y, engine->tile_reg[5], engine);
+			if(get_raw_tile((y*engine->tile_w)+x, engine).action == "spawn_enemy") //SPawn the enemy
+				create_nonplayer_entity(x, y, engine->tile_reg[6], engine);
 		}
 	}
 }
@@ -1461,11 +1423,11 @@ void do_tile_actions(game engine){
 //TODO: Implement a registry based system for the players, then update them independently based
 //on what form of player they are (player or non-player)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void update_players(game engine){
-	for(int i = 0; i < engine.player_reg.size(); i++){
+void update_players(game* engine){
+	for(int i = 0; i < engine->player_reg.size(); i++){
 		switch(get_player_type_id(i, engine)){
-		case 0 : engine.player_reg[i]->decay(); break;
-		case 1 : engine.player_reg[i]->think(find_controlled_player(engine), engine); break; //Call our helper function for this random npc
+		case 0 : engine->player_reg[i]->decay(); break;
+		case 1 : engine->player_reg[i]->think(find_controlled_player(engine), engine); break; //Call our helper function for this random npc
 		default : ; //Do nothing
 		}
 	}
@@ -1480,8 +1442,8 @@ void update_players(game engine){
 //PURPOSE: Return the integer id of the tile located at the linear position provided
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int get_tile(int pos, game engine){ 
-	return engine.curmap.formatted_data.at(pos); //Hopefully this new system will streamline things a bit
+int get_tile(int pos, game* engine){ 
+	return engine->curmap.formatted_data.at(pos); //Hopefully this new system will streamline things a bit
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1492,8 +1454,8 @@ int get_tile(int pos, game engine){
 //PURPOSE: To pick out a tile from the registry based on tile id
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-tile get_raw_reg_tile(int pos, game engine){
-	return engine.tile_reg[pos];
+tile get_raw_reg_tile(int pos, game* engine){
+	return engine->tile_reg[pos];
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1504,8 +1466,8 @@ tile get_raw_reg_tile(int pos, game engine){
 //PURPOSE: To simply pick out an entire tile from the tile registry (based on map)
 //TODO: Nothing
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-tile get_raw_tile(int pos, game engine){
-	return engine.tile_reg[engine.curmap.formatted_data.at(pos)]; //This should work. Whoops, can't directly access tile_reg
+tile get_raw_tile(int pos, game* engine){
+	return engine->tile_reg[engine->curmap.formatted_data.at(pos)]; //This should work. Whoops, can't directly access tile_reg
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1516,8 +1478,8 @@ tile get_raw_tile(int pos, game engine){
 //PURPOSE: To retrieve (in ALLEGRO_BITMAP form) the specified tile with the given id from the tile registry
 //TODO: Finished
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-ALLEGRO_BITMAP* get_image(int id, game engine){
-	return engine.tile_reg[id].image;
+ALLEGRO_BITMAP* get_image(int id, game* engine){
+	return engine->tile_reg[id].image;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1530,13 +1492,13 @@ ALLEGRO_BITMAP* get_image(int id, game engine){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Used primarily for things like spawn location and stuff like that.
 //Could be used for pathing eventually, if my AI ever gets that in depth.
-cartes find_tile(int id, game engine){
+cartes find_tile(int id, game* engine){
 	cartes temp;
-	for(int x = 0; x < engine.tile_w; x++){
-		for(int y = 0; y < engine.tile_h; y++){
-			if(get_tile((engine.tile_w*y)+x, engine) == id){
-				temp.x = x*engine.tile_px; //Make sure our points are converted to pixels rather than tiles
-				temp.y = y*engine.tile_px;
+	for(int x = 0; x < engine->tile_w; x++){
+		for(int y = 0; y < engine->tile_h; y++){
+			if(get_tile((engine->tile_w*y)+x, engine) == id){
+				temp.x = x*engine->tile_px; //Make sure our points are converted to pixels rather than tiles
+				temp.y = y*engine->tile_px;
 				}
 			}
 		}
@@ -1553,10 +1515,10 @@ cartes find_tile(int id, game engine){
 //TODO: Remove anything NOT RELATED to maps. This means the characters and entities. These should
 //be handled (technically) by their own update function. Work on this next.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void draw_map(game engine){
-	for(int x=0; x < engine.tile_w; x++){
-		for(int y=0; y < engine.tile_h; y++){
-			al_draw_bitmap(get_image(get_tile((engine.tile_w*y)+x, engine), engine), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
+void draw_map(game* engine){
+	for(int x=0; x < engine->tile_w; x++){
+		for(int y=0; y < engine->tile_h; y++){
+			al_draw_bitmap(get_image(get_tile((engine->tile_w*y)+x, engine), engine), x*32, y*32, 0); //Minor fix here. Originally reliant on a variable, now actually reliant on a constant
 		}
 	}
 }
@@ -1569,18 +1531,18 @@ void draw_map(game engine){
 //PURPOSE: Draw out all non-map (dynamic) geometry
 //TODO: Finished for now
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void draw_entities(game engine){
+void draw_entities(game* engine){
 	//Player registry being printed to screen
-	for(int i = 0; i < engine.player_reg.size(); i++){
-		al_draw_bitmap(engine.player_reg[i]->get_player_image(), engine.player_reg[i]->getx(), engine.player_reg[i]->gety(), 0);
+	for(int i = 0; i < engine->player_reg.size(); i++){
+		al_draw_bitmap(engine->player_reg[i]->get_player_image(), engine->player_reg[i]->getx(), engine->player_reg[i]->gety(), 0);
 		//This should make the player entity drawing independent. No more variables dictating this stuff
 	}
-	if(engine.entity_reg.size() == NULL){
+	if(engine->entity_reg.size() == NULL){
 		//Do nothing
 	}
 	else{
-		for(int i = 0; i < engine.entity_reg.size(); i++){
-			al_draw_bitmap(engine.entity_reg[i]->get_entity_tile(), engine.entity_reg[i]->getx(), engine.entity_reg[i]->gety(), 0);
+		for(int i = 0; i < engine->entity_reg.size(); i++){
+			al_draw_bitmap(engine->entity_reg[i]->get_entity_tile(), engine->entity_reg[i]->getx(), engine->entity_reg[i]->gety(), 0);
 			//This will draw an entity at the specified point with specified position
 		}
 	}
@@ -1594,7 +1556,7 @@ void draw_entities(game engine){
 //PURPOSE: Render all text currently active for this stage
 //TODO: Finish coding this section
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void draw_text(game engine){
+void draw_text(game* engine){
 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1606,7 +1568,7 @@ void draw_text(game engine){
 //PURPOSE: Automates all the draw functions with one function call
 //TODO: Case by case rendering? (Possiblity to exclude certain aspects?)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void draw(game engine){
+void draw(game* engine){
 	update_players(engine); //Update the current states of the player characters present in player_reg
 	draw_map(engine); //Draw the base map geometry
 	draw_entities(engine); //Draw the entities on top of the base geometry
@@ -1621,20 +1583,21 @@ void draw(game engine){
 //PURPOSE: To open and interpret the various config data points from config.ini
 //TODO: Add options as UI is formed
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void apply_main_config(game engine){
+void apply_main_config(game* engine){
 	//Setting the screen resolution as per the configuration file
-	engine.SCREEN_W = atoi(al_get_config_value(engine.config_ld, "SCREENRES", "w"));
-	engine.SCREEN_H = atoi(al_get_config_value(engine.config_ld, "SCREENRES", "h"));
-	engine.FPS = atoi(al_get_config_value(engine.config_ld, "FPS", "f"));
+	engine->SCREEN_W = atoi(al_get_config_value(engine->config_ld, "SCREENRES", "w"));
+	engine->SCREEN_H = atoi(al_get_config_value(engine->config_ld, "SCREENRES", "h"));
+	engine->FPS = atoi(al_get_config_value(engine->config_ld, "FPS", "f"));
+	engine->tile_px = atoi(al_get_config_value(engine->config_ld, "TILECONF", "px"));
 
 	fprintf(stdout, "Screen width: ");
-	fprintf(stdout, al_get_config_value(engine.config_ld, "SCREENRES", "w"));
+	fprintf(stdout, al_get_config_value(engine->config_ld, "SCREENRES", "w"));
 	fprintf(stdout, "\n");
 	fprintf(stdout, "Screen height: ");
-	fprintf(stdout, al_get_config_value(engine.config_ld, "SCREENRES", "h"));
+	fprintf(stdout, al_get_config_value(engine->config_ld, "SCREENRES", "h"));
 	fprintf(stdout, "\n");
 	fprintf(stdout, "FPS: ");
-	fprintf(stdout, al_get_config_value(engine.config_ld, "FPS", "f"));
+	fprintf(stdout, al_get_config_value(engine->config_ld, "FPS", "f"));
 	fprintf(stdout, "\n");
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1647,9 +1610,9 @@ void apply_main_config(game engine){
 //PURPOSE: Load all samples pointed to from the audio registry specified by the audio config file
 //TODO: Re-do the config system. Remember, paths do not need a root specifier in front, it is implied
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void load_samples(game engine){
-	int total_cat = atoi(al_get_config_value(engine.sound_cfg, "data", "total"));
-	int samples = atoi(al_get_config_value(engine.sound_cfg, "data", "samples"));
+void load_samples(game* engine){
+	int total_cat = atoi(al_get_config_value(engine->sound_cfg, "data", "total"));
+	int samples = atoi(al_get_config_value(engine->sound_cfg, "data", "samples"));
 	cout << "Total Samples: " + samples;
 	al_reserve_samples(samples);
 	string category;
@@ -1671,15 +1634,15 @@ void load_samples(game engine){
 		converter.str("");
 		converter << j + 1;
 		cur_cat = converter.str();
-		category = al_get_config_value(engine.sound_cfg, "data", cur_cat.c_str()); //Start off with the first specified value
-		cat_samples = atoi(al_get_config_value(engine.sound_cfg, category.c_str(), "end"));
-		path = al_get_config_value(engine.sound_cfg, category.c_str(), "path");
+		category = al_get_config_value(engine->sound_cfg, "data", cur_cat.c_str()); //Start off with the first specified value
+		cat_samples = atoi(al_get_config_value(engine->sound_cfg, category.c_str(), "end"));
+		path = al_get_config_value(engine->sound_cfg, category.c_str(), "path");
 		for(int i = 0; i < cat_samples; i++){
 			convert.clear();
 			convert.str("");
 			convert << i;
 			temp_i = convert.str();
-			file = al_get_config_value(engine.sound_cfg, category.c_str(), temp_i.c_str());
+			file = al_get_config_value(engine->sound_cfg, category.c_str(), temp_i.c_str());
 			filename = path + file; //Combine the path with the filename
 
 			temp.sample = al_load_sample(filename.c_str()); //Load the sample to our temporary sound
@@ -1717,7 +1680,7 @@ double round(double d){
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Initialization and cleanup functions
-int init_engine(game engine){
+int init_engine(game* engine){
 	srand(time(NULL));
 
 	al_init_font_addon();
@@ -1750,82 +1713,82 @@ int init_engine(game engine){
    }
    else{ fprintf(stdout, "Audio codecs installed!\n"); }
 
-   if(!engine.config_ld){
+   if(!engine->config_ld){
 	   fprintf(stderr, "failed to load config file! setting to defaults...\n");
    }
    else{
 	   apply_main_config(engine); fprintf(stdout, "Main config file loaded!\n");
    }
 
-   if(!engine.tile_cfg){
+   if(!engine->tile_cfg){
 	   fprintf(stderr, "Failed to load tile config file!\n");
 	   al_rest(5);
 	   return -4;
    }
    else { fprintf(stdout, "Tile file loaded!\n"); }
 
-   if(!engine.map_cfg){
+   if(!engine->map_cfg){
 	   fprintf(stderr, "Failed to load map!\n");
 	   return -5;
    } else
    { fprintf(stdout, "Map file loaded!\n"); }
 
-   if(!engine.tiledec_cfg){
+   if(!engine->tiledec_cfg){
 	   fprintf(stderr, "Failed to load tile decleration config file!\n");
 	   return -6;
-   } else { cout << "Tile decleration file loaded!\n"; }
+   } else { cout << "Tile declaration file loaded!\n"; }
 
-   if(!engine.entity_cfg){
+   if(!engine->entity_cfg){
 	   fprintf(stderr, "Failed to load entity config file!\n");
 	   return -11;
-   } else { cout << "Entity decleration file loaded!\n"; }
+   } else { cout << "Entity declaration file loaded!\n"; }
  
-   engine.display = al_create_display(engine.SCREEN_W, engine.SCREEN_H);
-   if(!engine.display) {
+   engine->display = al_create_display(engine->SCREEN_W, engine->SCREEN_H);
+   if(!engine->display) {
       fprintf(stderr, "failed to create display!\n");
       return -12;
    }
    else{ fprintf(stdout, "Display initialized!\n"); }
 
-   engine.evt_q = al_create_event_queue();
-   if(!engine.evt_q){
-	   al_destroy_display(engine.display);
+   engine->evt_q = al_create_event_queue();
+   if(!engine->evt_q){
+	   al_destroy_display(engine->display);
 	   fprintf(stderr, "failed to initialize event queue!\n");
 	   return -7;
    }
    else{ fprintf(stdout, "Event queue initialized!\n"); }
 
-   engine.timer = al_create_timer(1.0 / engine.FPS);
-   if(!engine.timer){
-	   al_destroy_display(engine.display);
-	   al_destroy_event_queue(engine.evt_q);
+   engine->timer = al_create_timer(1.0 / engine->FPS);
+   if(!engine->timer){
+	   al_destroy_display(engine->display);
+	   al_destroy_event_queue(engine->evt_q);
 	   fprintf(stderr, "failed to initialize timer!\n");
 	   return -8;
    }
    else{ fprintf(stdout, "Timer initialized!\n"); }
 
-  if(!engine.sound_cfg){
+  if(!engine->sound_cfg){
 	  cout << "Fuck, the sound config isn't loading. FUCK.\n";
 	  return -10;
   } else { cout << "Sound config file loaded!\n"; load_samples(engine); }
 
   loadworld(engine);
-   set_lvl(engine.globalWorld.levels[0], engine);
-   set_map(engine.curlvl.maps[0], engine);
+   set_lvl(engine->globalWorld.levels[0], engine);
+   set_map(engine->curlvl.maps[0], engine);
    return 0;
 }
 
-void clean_up(game engine){
-   al_destroy_timer(engine.timer);
-   al_destroy_event_queue(engine.evt_q);
-   al_destroy_display(engine.display);
-   al_destroy_config(engine.config_ld);
-   al_destroy_config(engine.tile_cfg);
-   al_destroy_config(engine.map_cfg);
-   al_destroy_config(engine.level_cfg);
-   al_destroy_config(engine.temp_lvls);
-   al_destroy_config(engine.tiledec_cfg);
-   al_destroy_config(engine.entity_cfg);
+void clean_up(game* engine){
+   al_destroy_timer(engine->timer);
+   al_destroy_event_queue(engine->evt_q);
+   al_destroy_display(engine->display);
+   al_destroy_config(engine->config_ld);
+   al_destroy_config(engine->tile_cfg);
+   al_destroy_config(engine->map_cfg);
+   al_destroy_config(engine->level_cfg);
+   al_destroy_config(engine->temp_lvls);
+   al_destroy_config(engine->tiledec_cfg);
+   al_destroy_config(engine->entity_cfg);
 
    al_uninstall_audio();
    al_uninstall_keyboard();
@@ -1843,30 +1806,30 @@ void clean_up(game engine){
 //position within a non-colliding region (e.g. a floor)
 //TODO: Clean things up
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool col_det(float x, float y, float dx, float dy, game engine){
-	int tile_y = round((y+dy)/engine.tile_px);
-	int tile_x = round((x+dx)/engine.tile_px);
-	int temp = engine.curmap.formatted_data.at(tile_y*engine.tile_w + tile_x);
-	tile temp_tile = get_raw_tile((tile_y*engine.tile_w)+tile_x, engine);
+bool col_det(float x, float y, float dx, float dy, game* engine){
+	int tile_y = round((y+dy)/engine->tile_px);
+	int tile_x = round((x+dx)/engine->tile_px);
+	int temp = engine->curmap.formatted_data.at(tile_y*engine->tile_w + tile_x);
+	tile temp_tile = get_raw_tile((tile_y*engine->tile_w)+tile_x, engine);
 
 	if(temp_tile.action == "move_north"){
 		move_map(0, engine);
-		return engine.tile_reg[temp].collide;
+		return engine->tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_east"){
 		move_map(1, engine);
-		return engine.tile_reg[temp].collide;
+		return engine->tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_south"){
 		move_map(2, engine);
-		return engine.tile_reg[temp].collide;
+		return engine->tile_reg[temp].collide;
 	}
 	if(temp_tile.action == "move_west"){
 		move_map(3, engine);
-		return engine.tile_reg[temp].collide;
+		return engine->tile_reg[temp].collide;
 	}
 	
-	return engine.tile_reg[temp].collide;
+	return engine->tile_reg[temp].collide;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PRE-MAIN DECLARATIONS DONE!
@@ -1889,7 +1852,7 @@ int main(int argc, char **argv)
 
 	game engine;
    
-	char error_status = init_engine(engine);
+	char error_status = init_engine(&engine);
 
    al_set_target_bitmap(al_get_backbuffer(engine.display));
 
@@ -1903,7 +1866,7 @@ int main(int argc, char **argv)
 
    al_start_timer(engine.timer);
 
-   do_tile_actions(engine);
+   do_tile_actions(&engine);
 
    while(!doexit){
 
@@ -1915,13 +1878,13 @@ int main(int argc, char **argv)
 
 	   if(ev.type == ALLEGRO_EVENT_TIMER){ //Basic ping from timer
 		   if(key[engine.KEY_LEFT])
-			   move_player(0, engine);
+			   move_player(0, &engine);
 		   if(key[engine.KEY_RIGHT])
-			   move_player(2, engine);
+			   move_player(2, &engine);
 		   if(key[engine.KEY_UP])
-			   move_player(1, engine);
+			   move_player(1, &engine);
 		   if(key[engine.KEY_DOWN])
-			   move_player(3, engine);
+			   move_player(3, &engine);
 
 		   redraw = true;
 	   }
@@ -1951,14 +1914,14 @@ int main(int argc, char **argv)
 	   if(redraw && al_is_event_queue_empty(engine.evt_q)){
 		al_clear_to_color(al_map_rgb(0,0,0)); //Clear the foreground (kinda expensive)
 		redraw = false; //Make sure we don't redraw again till the next 60 frames
-		draw(engine);
+		draw(&engine);
 		al_flip_display(); //Bring buffer up
 	   }
 
 
    }
  
-	clean_up(engine);
+	clean_up(&engine);
  
    return 0;
 }

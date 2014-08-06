@@ -1,0 +1,39 @@
+﻿Build started 8/5/2014 12:47:28 PM.
+     1>Project "C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\RadiationEngine\RadiationEngine.vcxproj" on node 2 (Build target(s)).
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(356,5): warning MSB8004: Intermediate Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Intermediate Directory.
+     1>C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V120\Microsoft.CppBuild.targets(357,5): warning MSB8004: Output Directory does not end with a trailing slash.  This build instance will add the slash as it is required to allow proper evaluation of the Output Directory.
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\include" /I"F:\Radiation\allegro-5.0.10-msvc-11.0\include" /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D _MBCS /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"..\Release\\" /Fd"..\Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt engine.cpp main.cpp
+         engine.cpp
+         main.cpp
+     1>main.cpp(131): warning C4273: 'round' : inconsistent dll linkage
+                 C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\include\math.h(516) : see previous definition of 'round'
+     1>main.cpp(272): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(274): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(805): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(808): warning C4018: '>=' : signed/unsigned mismatch
+     1>main.cpp(982): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1021): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1073): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1090): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1169): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1196): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1294): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1298): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1465): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1574): warning C4018: '<' : signed/unsigned mismatch
+     1>main.cpp(1582): warning C4018: '<' : signed/unsigned mismatch
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"..\Release\RadiationEngine.exe" /NOLOGO /LIBPATH:"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\lib" /LIBPATH:"F:\Radiation\allegro-5.0.10-msvc-11.0\lib" "allegro-5.0.10-monolith-md.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"..\Release\RadiationEngine.pdb" /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"..\Release\RadiationEngine.lib" /MACHINE:X86 /SAFESEH ..\Release\engine.obj
+         ..\Release\main.obj
+            Creating library ..\Release\RadiationEngine.lib and object ..\Release\RadiationEngine.exp
+         Generating code
+     1>c:\users\dpackard\dropbox\k-alpha\radiation\radiation\radiationengine\radiationengine\main.cpp(1174): warning C4715: 'find_entity' : not all control paths return a value
+     1>c:\users\dpackard\dropbox\k-alpha\radiation\radiation\radiationengine\radiationengine\main.cpp(1204): warning C4715: 'find_controlled_player' : not all control paths return a value
+         Finished generating code
+         RadiationEngine.vcxproj -> C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\RadiationEngine\..\Release\RadiationEngine.exe
+     1>Done Building Project "C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\RadiationEngine\RadiationEngine.vcxproj" (Build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:03.49

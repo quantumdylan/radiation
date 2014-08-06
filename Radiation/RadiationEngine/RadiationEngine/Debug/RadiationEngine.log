@@ -1,14 +1,14 @@
-﻿Build started 8/4/2014 1:31:36 PM.
+﻿Build started 8/5/2014 6:56:03 PM.
      1>Project "C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\RadiationEngine\RadiationEngine.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
-         C:\Program Files\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\allegro-5.0.10-msvc-11.0\include" /I"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\include" /I"F:\Radiation\allegro-5.0.10-msvc-11.0\include" /ZI /nologo /W0 /WX- /sdl- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\allegro-5.0.10-msvc-11.0\include" /I"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\include" /I"F:\Radiation\allegro-5.0.10-msvc-11.0\include" /ZI /nologo /W0 /WX- /sdl- /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
          main.cpp
        Link:
-         C:\Program Files\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\allegro-5.0.10-msvc-11.0\lib" /LIBPATH:"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\lib" /LIBPATH:"F:\Radiation\allegro-5.0.10-msvc-11.0\lib" "allegro-5.0.10-monolith-md-debug.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.lib" /MACHINE:X86 Debug\main.obj
-            Creating library C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.lib and object C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exp
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe" /INCREMENTAL /NOLOGO /LIBPATH:"C:\allegro-5.0.10-msvc-11.0\lib" /LIBPATH:"C:\Users\dpackard\Dropbox\Radiation\allegro-5.0.10-msvc-11.0\lib" /LIBPATH:"F:\Radiation\allegro-5.0.10-msvc-11.0\lib" "allegro-5.0.10-monolith-md-debug.lib" kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.lib" /MACHINE:X86 Debug\engine.obj
+         Debug\main.obj
          RadiationEngine.vcxproj -> C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\Debug\RadiationEngine.exe
      1>Done Building Project "C:\Users\dpackard\Dropbox\K-Alpha\radiation\Radiation\RadiationEngine\RadiationEngine\RadiationEngine.vcxproj" (Build target(s)).
 
 Build succeeded.
 
-Time Elapsed 00:00:06.38
+Time Elapsed 00:00:02.05

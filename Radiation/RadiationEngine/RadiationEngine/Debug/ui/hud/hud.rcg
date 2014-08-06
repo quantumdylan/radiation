@@ -1,0 +1,30 @@
+[data]
+name = TESTHUD
+totalstr = 4
+totalimg = 0
+
+[str0]
+font = 0
+text = Name: %PLAYERNAME%
+x = 0
+y = 0
+
+[str1]
+font = 0
+text = Health: %CURPLAYERHEALTH%/%TOTPLAYERHEALTH%
+x = 0
+y = 0
+
+[str2]
+font = 0
+text = Current Level: %CURLEVELNAME%
+x = 0
+y = 0
+
+[str3]
+font = 0
+text = Current Room: %CURMAPNAME%
+x = 0
+y = 0
+
+[img0]
